@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../cubits/categories_cubit.dart';
+import '../cubits/category_completion_cubit.dart';
+import '../cubits/review_cubit.dart';
+import '../cubits/stats_cubit.dart';
+import '../cubits/profile_cubit.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/category_service.dart';
@@ -33,11 +39,27 @@ class _MainScreenState extends State<MainScreen> {
     final reviewService = ReviewService(widget.apiService);
     final statsService = StatsService(widget.apiService);
     final profileService = ProfileService(widget.apiService);
+
     _tabs = [
-      QuizTab(categoryService: catService, quizService: quizService),
-      ReviewTab(reviewService: reviewService, quizService: quizService),
-      StatsTab(statsService: statsService),
-      ProfileTab(authService: widget.authService, profileService: profileService),
+      MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (_) => CategoriesCubit(catService)..load()),
+          BlocProvider(create: (_) => CategoryCompletionCubit(catService)..load()),
+        ],
+        child: QuizTab(quizService: quizService),
+      ),
+      BlocProvider(
+        create: (_) => ReviewCubit(reviewService)..load(),
+        child: ReviewTab(quizService: quizService),
+      ),
+      BlocProvider(
+        create: (_) => StatsCubit(statsService)..load(),
+        child: const StatsTab(),
+      ),
+      BlocProvider(
+        create: (_) => ProfileCubit(profileService)..load(),
+        child: ProfileTab(authService: widget.authService),
+      ),
     ];
   }
 

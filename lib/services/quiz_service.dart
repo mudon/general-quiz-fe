@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:math';
 import '../config/api_config.dart';
 import '../models/question.dart';
+import '../models/quiz_session.dart';
 import 'api_service.dart';
 
 class QuizService {
@@ -26,26 +26,6 @@ class QuizService {
     }
     final err = jsonDecode(res.body);
     throw Exception(err['error'] ?? 'Failed to load questions');
-  }
-
-  Future<Question?> getRandomQuestion({required String categoryId}) async {
-    var allQuestions = <Question>[];
-    String? cursor;
-
-    do {
-      final page = await getQuestionsByCategory(
-        categoryId: categoryId,
-        cursor: cursor,
-        limit: 50,
-      );
-      allQuestions.addAll(page.items);
-      cursor = page.nextCursor;
-    } while (cursor != null);
-
-    if (allQuestions.isEmpty) return null;
-
-    final rng = Random();
-    return allQuestions[rng.nextInt(allQuestions.length)];
   }
 
   Future<Question?> getQuestionById(String id) async {
@@ -85,5 +65,48 @@ class QuizService {
 
     final err = jsonDecode(res.body);
     throw Exception(err['error'] ?? 'Failed to submit answer');
+  }
+
+  Future<QuizSession> createSession({required String categoryId}) async {
+    final res = await _api.post(
+      ApiConfig.quizSessions,
+      {'categoryId': categoryId},
+      auth: true,
+    );
+
+    if (res.statusCode == 200) {
+      return QuizSession.fromJson(jsonDecode(res.body));
+    }
+    final err = jsonDecode(res.body);
+    throw Exception(err['error'] ?? 'Failed to create quiz session');
+  }
+
+  Future<List<QuizSession>> getActiveSessions() async {
+    final res = await _api.get(ApiConfig.quizSessions, auth: true);
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body) as List<dynamic>;
+      return data
+          .map((s) => QuizSession.fromJson(s as Map<String, dynamic>))
+          .toList();
+    }
+    final err = jsonDecode(res.body);
+    throw Exception(err['error'] ?? 'Failed to load sessions');
+  }
+
+  Future<NextQuestionResponse> getNextQuestion(String sessionId) async {
+    final res = await _api.get(ApiConfig.quizSessionNext(sessionId));
+    if (res.statusCode == 200) {
+      return NextQuestionResponse.fromJson(jsonDecode(res.body));
+    }
+    final err = jsonDecode(res.body);
+    throw Exception(err['error'] ?? 'Failed to get next question');
+  }
+
+  Future<void> resetSession(String sessionId) async {
+    final res = await _api.put(ApiConfig.quizSessionReset(sessionId), {});
+    if (res.statusCode != 200) {
+      final err = jsonDecode(res.body);
+      throw Exception(err['error'] ?? 'Failed to reset session');
+    }
   }
 }

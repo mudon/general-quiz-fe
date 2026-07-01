@@ -20,6 +20,7 @@ class ApiConfig {
   // ── categories ──
   static const String categories = '/api/categories';
   static String categoryById(String id) => '/api/categories/$id';
+  static const String categoryCompletion = '/api/categories/completion-status';
   static const String adminCategories = '/api/admin/categories';
   static String adminCategoryById(String id) => '/api/admin/categories/$id';
 
@@ -49,6 +50,11 @@ class ApiConfig {
   static const String adminUsers = '/api/admin/users';
   static String adminUserById(String id) => '/api/admin/users/$id';
   static String adminUserRole(String id) => '/api/admin/users/$id/role';
+
+  // ── quiz sessions ──
+  static const String quizSessions = '/api/quiz/sessions';
+  static String quizSessionNext(String id) => '/api/quiz/sessions/$id/next';
+  static String quizSessionReset(String id) => '/api/quiz/sessions/$id/reset';
 
   // ── health ──
   static const String health = '/health';

@@ -1,84 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../cubits/stats_cubit.dart';
 import '../../models/stats.dart';
-import '../../services/stats_service.dart';
 import '../../theme/app_theme.dart';
 
-class StatsTab extends StatefulWidget {
-  final StatsService statsService;
-
-  const StatsTab({super.key, required this.statsService});
-
-  @override
-  State<StatsTab> createState() => _StatsTabState();
-}
-
-class _StatsTabState extends State<StatsTab> {
-  UserStats? _stats;
-  List<CategoryStat>? _categoryStats;
-  bool _loading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final results = await Future.wait([
-        widget.statsService.getStats(),
-        widget.statsService.getCategoryStats(),
-      ]);
-      if (mounted) {
-        setState(() {
-          _stats = results[0] as UserStats;
-          _categoryStats = results[1] as List<CategoryStat>;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
-  }
+class StatsTab extends StatelessWidget {
+  const StatsTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('📊', style: TextStyle(fontSize: 24)),
-            SizedBox(width: 8),
-            Text('MY STATS',
-                style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
-          ],
-        ),
-      ),
-      body: _buildBody(),
+    return BlocBuilder<StatsCubit, StatsState>(
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: AppColors.surface,
+          appBar: AppBar(
+            title: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('📊', style: TextStyle(fontSize: 24)),
+                SizedBox(width: 8),
+                Text('MY STATS',
+                    style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+              ],
+            ),
+          ),
+          body: _buildBody(context, state),
+        );
+      },
     );
   }
 
-  Widget _buildBody() {
-    if (_loading) {
-      return Center(
+  Widget _buildBody(BuildContext context, StatsState state) {
+    if (state.loading) {
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('📊', style: TextStyle(fontSize: 56)),
-            const SizedBox(height: 12),
-            const Text('Loading stats...',
+            Text('📊', style: TextStyle(fontSize: 56)),
+            SizedBox(height: 12),
+            Text('Loading stats...',
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -88,7 +48,7 @@ class _StatsTabState extends State<StatsTab> {
       );
     }
 
-    if (_error != null) {
+    if (state.error != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -97,13 +57,13 @@ class _StatsTabState extends State<StatsTab> {
             children: [
               const Text('😵', style: TextStyle(fontSize: 56)),
               const SizedBox(height: 12),
-              Text(_error!, textAlign: TextAlign.center,
+              Text(state.error!, textAlign: TextAlign.center,
                   style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: _load,
+                onPressed: () => context.read<StatsCubit>().load(),
                 child: const Text('TRY AGAIN'),
               ),
             ],
@@ -112,7 +72,7 @@ class _StatsTabState extends State<StatsTab> {
       );
     }
 
-    if (_stats == null) {
+    if (state.stats == null) {
       return const Center(
         child: Text('😴 No stats yet!',
             style: TextStyle(
@@ -123,7 +83,7 @@ class _StatsTabState extends State<StatsTab> {
     }
 
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: () => context.read<StatsCubit>().load(),
       color: AppColors.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -131,10 +91,10 @@ class _StatsTabState extends State<StatsTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildStatCards(),
-            if (_categoryStats != null && _categoryStats!.isNotEmpty) ...[
+            _buildStatCards(context, state.stats!),
+            if (state.categoryStats != null && state.categoryStats!.isNotEmpty) ...[
               const SizedBox(height: 28),
-              _buildCategoriesSection(),
+              _buildCategoriesSection(state.categoryStats!),
             ],
             const SizedBox(height: 32),
           ],
@@ -143,22 +103,20 @@ class _StatsTabState extends State<StatsTab> {
     );
   }
 
-  Widget _buildStatCards() {
-    final s = _stats!;
-
+  Widget _buildStatCards(BuildContext context, UserStats s) {
     return Wrap(
       spacing: 12,
       runSpacing: 12,
       children: [
-        _buildStatCard('🤔', 'ANSWERED', '${s.totalQuestionsAnswered}', AppColors.primary),
-        _buildStatCard('🔥', 'CORRECT STREAK', '${s.totalCorrectStreak}', AppColors.secondary),
-        _buildStatCard('📅', 'LOGIN STREAK', '${s.currentLoginStreak}', AppColors.sky),
-        _buildStatCard('🏆', 'BEST STREAK', '${s.longestLoginStreak}', AppColors.gold),
+        _buildStatCard(context, '🤔', 'ANSWERED', '${s.totalQuestionsAnswered}', AppColors.primary),
+        _buildStatCard(context, '🔥', 'CORRECT STREAK', '${s.totalCorrectStreak}', AppColors.secondary),
+        _buildStatCard(context, '📅', 'LOGIN STREAK', '${s.currentLoginStreak}', AppColors.sky),
+        _buildStatCard(context, '🏆', 'BEST STREAK', '${s.longestLoginStreak}', AppColors.gold),
       ],
     );
   }
 
-  Widget _buildStatCard(String emoji, String label, String value, Color color) {
+  Widget _buildStatCard(BuildContext context, String emoji, String label, String value, Color color) {
     return SizedBox(
       width: (MediaQuery.of(context).size.width - 44) / 2,
       child: Container(
@@ -181,26 +139,20 @@ class _StatsTabState extends State<StatsTab> {
             children: [
               Text(emoji, style: const TextStyle(fontSize: 30)),
               const SizedBox(height: 8),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: color,
-                  letterSpacing: 1,
-                ),
-              ),
+              Text(value,
+                  style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: color,
+                      letterSpacing: 1)),
               const SizedBox(height: 4),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textSecondary,
-                  letterSpacing: 1,
-                ),
-              ),
+              Text(label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textSecondary,
+                      letterSpacing: 1)),
             ],
           ),
         ),
@@ -208,44 +160,45 @@ class _StatsTabState extends State<StatsTab> {
     );
   }
 
-  Widget _buildCategoriesSection() {
+  Widget _buildCategoriesSection(List<CategoryStat> cats) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.outline, width: 2.5),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.15),
-                blurRadius: 0,
-                offset: const Offset(3, 3),
-              ),
-            ],
+        _buildSectionHeader(),
+        ...cats.map(_buildCategoryCard),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.outline, width: 2.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.15),
+            blurRadius: 0,
+            offset: const Offset(3, 3),
           ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('📂', style: TextStyle(fontSize: 18)),
-              SizedBox(width: 8),
-              Text(
-                'BY CATEGORY',
-                style: TextStyle(
+        ],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('📂', style: TextStyle(fontSize: 18)),
+          SizedBox(width: 8),
+          Text('BY CATEGORY',
+              style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-        ..._categoryStats!.map((cat) => _buildCategoryCard(cat)),
-      ],
+                  letterSpacing: 1.5)),
+        ],
+      ),
     );
   }
 
@@ -279,23 +232,17 @@ class _StatsTabState extends State<StatsTab> {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    cat.categoryName,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+                  child: Text(cat.categoryName,
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary)),
                 ),
-                Text(
-                  '${cat.accuracy.toStringAsFixed(1)}%',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: accuracyColor,
-                  ),
-                ),
+                Text('${cat.accuracy.toStringAsFixed(1)}%',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: accuracyColor)),
               ],
             ),
             const SizedBox(height: 10),
@@ -309,30 +256,12 @@ class _StatsTabState extends State<StatsTab> {
               ),
             ),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                _buildMiniTag('${cat.correctAnswers}/${cat.questionsAnswered} correct', AppColors.textSecondary),
-              ],
-            ),
+            Text('${cat.correctAnswers}/${cat.questionsAnswered} correct',
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textSecondary)),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMiniTag(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: color,
         ),
       ),
     );

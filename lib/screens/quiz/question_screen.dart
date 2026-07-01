@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/question.dart';
+import '../../models/quiz_session.dart';
 import '../../services/quiz_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/streak_badge.dart';
@@ -7,19 +8,17 @@ import '../../widgets/confetti_overlay.dart';
 
 class QuestionScreen extends StatefulWidget {
   final QuizService quizService;
-  final String categoryId;
   final String categoryName;
+  final String sessionId;
   final Question? initialQuestion;
-  final String? initialQuestionId;
   final bool isReviewMode;
 
   const QuestionScreen({
     super.key,
     required this.quizService,
-    required this.categoryId,
+    required this.sessionId,
     required this.categoryName,
     this.initialQuestion,
-    this.initialQuestionId,
     this.isReviewMode = false,
   });
 
@@ -42,6 +41,11 @@ class _QuestionScreenState extends State<QuestionScreen>
   int _streak = 0;
   bool _showConfetti = false;
   bool _resultAnimating = false;
+
+  NextQuestionResponse? _next;
+  int _sessionAnswered = 0;
+  int _sessionTotal = 0;
+  bool _sessionCompleted = false;
 
   late AnimationController _cardController;
   late Animation<double> _cardScale;
@@ -80,19 +84,34 @@ class _QuestionScreenState extends State<QuestionScreen>
       _resultAnimating = false;
     });
     try {
-      Question? q;
-      if (widget.initialQuestion != null) {
-        q = widget.initialQuestion;
-      } else if (widget.initialQuestionId != null) {
-        q = await widget.quizService.getQuestionById(widget.initialQuestionId!);
-      } else {
-        q = await widget.quizService.getRandomQuestion(
-          categoryId: widget.categoryId,
-        );
-      }
-      if (mounted) {
-        setState(() { _question = q; _loading = false; });
+      if (widget.isReviewMode && widget.initialQuestion != null) {
+        setState(() {
+          _question = widget.initialQuestion;
+          _loading = false;
+        });
         _cardController.forward(from: 0);
+        return;
+      }
+
+      final next = await widget.quizService.getNextQuestion(widget.sessionId);
+      if (mounted) {
+        if (next.completed) {
+          setState(() {
+            _sessionCompleted = true;
+            _sessionTotal = next.totalQuestions;
+            _sessionAnswered = next.answeredCount;
+            _loading = false;
+          });
+        } else {
+          setState(() {
+            _question = next.question;
+            _next = next;
+            _sessionTotal = next.totalQuestions;
+            _sessionAnswered = next.answeredCount;
+            _loading = false;
+          });
+          _cardController.forward(from: 0);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -150,8 +169,14 @@ class _QuestionScreenState extends State<QuestionScreen>
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text(widget.categoryName,
-            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+        title: Text(
+          _sessionCompleted
+              ? '${widget.categoryName}  ✅'
+              : _sessionTotal > 0
+                  ? '${widget.categoryName}  ${_sessionAnswered + 1}/$_sessionTotal'
+                  : widget.categoryName,
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -195,8 +220,6 @@ class _QuestionScreenState extends State<QuestionScreen>
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textSecondary)),
-            const SizedBox(height: 16),
-            const CircularProgressIndicator(color: AppColors.primary),
           ],
         ),
       );
@@ -221,6 +244,10 @@ class _QuestionScreenState extends State<QuestionScreen>
           ),
         ),
       );
+    }
+
+    if (_sessionCompleted) {
+      return _buildCompletedScreen();
     }
 
     if (_question == null) {
@@ -268,6 +295,68 @@ class _QuestionScreenState extends State<QuestionScreen>
           if (answered)
             _buildNextButton(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCompletedScreen() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: AppColors.success,
+                borderRadius: BorderRadius.circular(40),
+                border: Border.all(color: AppColors.outline, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.success.withValues(alpha: 0.4),
+                    blurRadius: 0,
+                    offset: const Offset(6, 6),
+                  ),
+                ],
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(24),
+                child: Text('🎉', style: TextStyle(fontSize: 64)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'ALL DONE!',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textPrimary,
+                letterSpacing: 3,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You answered $_sessionTotal questions\nin ${widget.categoryName}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 28),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Text('👈', style: TextStyle(fontSize: 16)),
+              label: const Text('BACK TO CATEGORIES'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shadowColor: AppColors.primary.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -607,6 +696,7 @@ class _QuestionScreenState extends State<QuestionScreen>
             TextField(
               controller: _fillInController,
               textInputAction: TextInputAction.done,
+              onChanged: (_) => setState(() {}),
               onSubmitted: (_) => _submitAnswer(),
               style: const TextStyle(
                 fontSize: 18,
@@ -807,7 +897,9 @@ class _QuestionScreenState extends State<QuestionScreen>
     return FilledButton.icon(
       onPressed: _loadQuestion,
       icon: const Text('▶️', style: TextStyle(fontSize: 16)),
-      label: const Text('NEXT QUESTION'),
+      label: Text(_next?.remainingCount != null && _next!.remainingCount > 0
+          ? 'NEXT QUESTION  (${_next!.remainingCount} left)'
+          : 'NEXT QUESTION'),
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.primary,
         shadowColor: AppColors.primary.withValues(alpha: 0.5),

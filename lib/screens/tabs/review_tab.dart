@@ -1,56 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../cubits/review_cubit.dart';
 import '../../models/review.dart';
-import '../../services/review_service.dart';
 import '../../services/quiz_service.dart';
 import '../../theme/app_theme.dart';
 import '../quiz/question_screen.dart';
 import '../../models/question.dart' as qm;
 
-class ReviewTab extends StatefulWidget {
-  final ReviewService reviewService;
+class ReviewTab extends StatelessWidget {
   final QuizService quizService;
 
-  const ReviewTab({
-    super.key,
-    required this.reviewService,
-    required this.quizService,
-  });
+  const ReviewTab({super.key, required this.quizService});
 
   @override
-  State<ReviewTab> createState() => _ReviewTabState();
-}
-
-class _ReviewTabState extends State<ReviewTab> {
-  List<DueReviewItem>? _items;
-  bool _loading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
+  Widget build(BuildContext context) {
+    return BlocBuilder<ReviewCubit, ReviewState>(
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: AppColors.surface,
+          appBar: AppBar(
+            title: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('📚', style: TextStyle(fontSize: 24)),
+                SizedBox(width: 8),
+                Text('REVIEW DUE',
+                    style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+              ],
+            ),
+          ),
+          body: _buildBody(context, state),
+        );
+      },
+    );
   }
 
-  Future<void> _load() async {
-    try {
-      final page = await widget.reviewService.getDueForReview();
-      if (mounted) {
-        setState(() {
-          _items = page.items;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  void _openQuestion(DueReviewItem item) {
+  void _openQuestion(BuildContext context, DueReviewItem item) {
     final q = qm.Question(
       id: item.questionId,
       categoryId: item.categoryId,
@@ -64,9 +49,9 @@ class _ReviewTabState extends State<ReviewTab> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => QuestionScreen(
-          quizService: widget.quizService,
-          categoryId: item.categoryId,
+          quizService: quizService,
           categoryName: 'Review',
+          sessionId: '',
           initialQuestion: q,
           isReviewMode: true,
         ),
@@ -74,48 +59,15 @@ class _ReviewTabState extends State<ReviewTab> {
     );
   }
 
-  String _levelEmoji(int repetitions) {
-    if (repetitions >= 5) return '🧠';
-    if (repetitions >= 3) return '💪';
-    if (repetitions >= 1) return '📖';
-    return '🆕';
-  }
-
-  Color _levelColor(int repetitions) {
-    if (repetitions >= 5) return AppColors.success;
-    if (repetitions >= 3) return AppColors.primary;
-    if (repetitions >= 1) return AppColors.sky;
-    return AppColors.secondary;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('📚', style: TextStyle(fontSize: 24)),
-            SizedBox(width: 8),
-            Text('REVIEW DUE',
-                style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
-          ],
-        ),
-      ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_loading) {
-      return Center(
+  Widget _buildBody(BuildContext context, ReviewState state) {
+    if (state.loading) {
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('📚', style: TextStyle(fontSize: 56)),
-            const SizedBox(height: 12),
-            const Text('Loading review...',
+            Text('📚', style: TextStyle(fontSize: 56)),
+            SizedBox(height: 12),
+            Text('Loading review...',
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -125,7 +77,7 @@ class _ReviewTabState extends State<ReviewTab> {
       );
     }
 
-    if (_error != null) {
+    if (state.error != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -134,16 +86,13 @@ class _ReviewTabState extends State<ReviewTab> {
             children: [
               const Text('😵', style: TextStyle(fontSize: 56)),
               const SizedBox(height: 12),
-              Text(_error!, textAlign: TextAlign.center,
+              Text(state.error!, textAlign: TextAlign.center,
                   style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () {
-                  setState(() { _loading = true; _error = null; });
-                  _load();
-                },
+                onPressed: () => context.read<ReviewCubit>().load(),
                 child: const Text('TRY AGAIN'),
               ),
             ],
@@ -152,7 +101,7 @@ class _ReviewTabState extends State<ReviewTab> {
       );
     }
 
-    if (_items == null || _items!.isEmpty) {
+    if (state.items == null || state.items!.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -201,7 +150,7 @@ class _ReviewTabState extends State<ReviewTab> {
                       fontSize: 14)),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: _load,
+                onPressed: () => context.read<ReviewCubit>().load(),
                 child: const Text('REFRESH 🔄'),
               ),
             ],
@@ -211,21 +160,21 @@ class _ReviewTabState extends State<ReviewTab> {
     }
 
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: () => context.read<ReviewCubit>().load(),
       color: AppColors.primary,
       child: ListView.builder(
         padding: const EdgeInsets.all(14),
-        itemCount: _items!.length,
-        itemBuilder: (context, index) => _buildCard(_items![index]),
+        itemCount: state.items!.length,
+        itemBuilder: (context, index) => _buildCard(context, state.items![index]),
       ),
     );
   }
 
-  Widget _buildCard(DueReviewItem item) {
+  Widget _buildCard(BuildContext context, DueReviewItem item) {
     final color = _levelColor(item.repetitions);
 
     return GestureDetector(
-      onTap: () => _openQuestion(item),
+      onTap: () => _openQuestion(context, item),
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(3),
@@ -255,10 +204,8 @@ class _ReviewTabState extends State<ReviewTab> {
                   border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
                 ),
                 child: Center(
-                  child: Text(
-                    _levelEmoji(item.repetitions),
-                    style: const TextStyle(fontSize: 24),
-                  ),
+                  child: Text(_levelEmoji(item.repetitions),
+                      style: const TextStyle(fontSize: 24)),
                 ),
               ),
               const SizedBox(width: 14),
@@ -266,33 +213,21 @@ class _ReviewTabState extends State<ReviewTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.questionText,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                        height: 1.3,
-                      ),
-                    ),
+                    Text(item.questionText,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                            height: 1.3)),
                     const SizedBox(height: 10),
                     Row(
                       children: [
                         _buildTag(
-                          item.questionType == 'single_choice'
-                              ? '🎯'
-                              : item.questionType == 'multiple_choice'
-                                  ? '✅'
-                                  : '✏️',
-                          item.questionType == 'single_choice'
-                              ? 'SINGLE'
-                              : item.questionType == 'multiple_choice'
-                                  ? 'MULTI'
-                                  : 'FILL',
-                          color,
-                        ),
+                            item.questionType == 'single_choice' ? '🎯' : item.questionType == 'multiple_choice' ? '✅' : '✏️',
+                            item.questionType == 'single_choice' ? 'SINGLE' : item.questionType == 'multiple_choice' ? 'MULTI' : 'FILL',
+                            color),
                         const SizedBox(width: 8),
                         _buildTag('📅', '${item.intervalDays}d', AppColors.textSecondary),
                         const SizedBox(width: 8),
@@ -314,6 +249,20 @@ class _ReviewTabState extends State<ReviewTab> {
     );
   }
 
+  String _levelEmoji(int repetitions) {
+    if (repetitions >= 5) return '🧠';
+    if (repetitions >= 3) return '💪';
+    if (repetitions >= 1) return '📖';
+    return '🆕';
+  }
+
+  Color _levelColor(int repetitions) {
+    if (repetitions >= 5) return AppColors.success;
+    if (repetitions >= 3) return AppColors.primary;
+    if (repetitions >= 1) return AppColors.sky;
+    return AppColors.secondary;
+  }
+
   Widget _buildTag(String emoji, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -326,14 +275,8 @@ class _ReviewTabState extends State<ReviewTab> {
         children: [
           Text(emoji, style: const TextStyle(fontSize: 11)),
           const SizedBox(width: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
+          Text(label,
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
         ],
       ),
     );
