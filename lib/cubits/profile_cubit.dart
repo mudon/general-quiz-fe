@@ -79,6 +79,7 @@ class ProfileCubit extends Cubit<ProfileState> {
         avatarValue: avatarValue,
       );
       await load();
+      emit(state.copyWith(saving: false));
     } catch (e) {
       emit(state.copyWith(saving: false));
       rethrow;

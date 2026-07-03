@@ -56,6 +56,10 @@ class ApiConfig {
   static String quizSessionNext(String id) => '/api/quiz/sessions/$id/next';
   static String quizSessionReset(String id) => '/api/quiz/sessions/$id/reset';
 
+  // ── subscriptions ──
+  static const String subPlans = '/api/subscriptions/plans';
+  static const String subCheckout = '/api/subscriptions/checkout';
+
   // ── health ──
   static const String health = '/health';
 }

@@ -9,6 +9,7 @@ class CategoryBubble extends StatelessWidget {
   final int totalQuestions;
   final int answeredQuestions;
   final bool completed;
+  final bool locked;
 
   const CategoryBubble({
     super.key,
@@ -18,6 +19,7 @@ class CategoryBubble extends StatelessWidget {
     this.totalQuestions = 0,
     this.answeredQuestions = 0,
     this.completed = false,
+    this.locked = false,
   });
 
   String _emojiForCategory(String? icon) {
@@ -46,61 +48,89 @@ class CategoryBubble extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Container(
-            width: 105,
-            margin: const EdgeInsets.all(7),
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: completed ? AppColors.success : AppColors.outline,
-                width: completed ? 3 : 3,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: completed
-                      ? AppColors.success.withValues(alpha: 0.4)
-                      : color.withValues(alpha: 0.4),
-                  blurRadius: 0,
-                  offset: const Offset(5, 5),
-                ),
-              ],
-            ),
+          Opacity(
+            opacity: locked ? 0.6 : 1.0,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+              width: 105,
+              margin: const EdgeInsets.all(7),
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: completed
-                    ? AppColors.success.withValues(alpha: 0.08)
-                    : color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _emojiForCategory(category.icon),
-                    style: const TextStyle(fontSize: 30),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    category.name,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      height: 1.2,
-                      letterSpacing: 0.3,
-                    ),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: completed
+                      ? AppColors.success
+                      : locked
+                          ? AppColors.textSecondary
+                          : AppColors.outline,
+                  width: 3,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: completed
+                        ? AppColors.success.withValues(alpha: 0.4)
+                        : locked
+                            ? AppColors.textSecondary.withValues(alpha: 0.3)
+                            : color.withValues(alpha: 0.4),
+                    blurRadius: 0,
+                    offset: const Offset(5, 5),
                   ),
                 ],
               ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                decoration: BoxDecoration(
+                  color: completed
+                      ? AppColors.success.withValues(alpha: 0.08)
+                      : locked
+                          ? AppColors.textSecondary.withValues(alpha: 0.05)
+                          : color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _emojiForCategory(category.icon),
+                      style: const TextStyle(fontSize: 30),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      category.name,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        height: 1.2,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          if (completed)
+          if (locked)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text('🔒',
+                      style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ),
+          if (!locked && completed)
             Positioned(
               top: 2,
               right: 2,
@@ -120,7 +150,7 @@ class CategoryBubble extends StatelessWidget {
                 ),
               ),
             ),
-          if (!completed && totalQuestions > 0)
+          if (!locked && !completed && totalQuestions > 0)
             Positioned(
               bottom: -4,
               right: -4,

@@ -37,6 +37,7 @@ class AuthService {
       _api.cacheUserInfo(
         '${user.firstName} ${user.lastName}',
         user.email,
+        tier: user.tier,
       );
       return AuthResponse(user: user, tokens: tokens);
     }
@@ -62,6 +63,7 @@ class AuthService {
       _api.cacheUserInfo(
         '${user.firstName} ${user.lastName}',
         user.email,
+        tier: user.tier,
       );
       return AuthResponse(user: user, tokens: tokens);
     }

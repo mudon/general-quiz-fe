@@ -3,15 +3,36 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubits/categories_cubit.dart';
 import '../../cubits/category_completion_cubit.dart';
 import '../../models/category.dart';
+import '../../services/api_service.dart';
 import '../../services/quiz_service.dart';
+import '../../services/subscription_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/category_bubble.dart';
 import '../quiz/question_screen.dart';
+import '../subscription_screen.dart';
 
-class QuizTab extends StatelessWidget {
+class QuizTab extends StatefulWidget {
   final QuizService quizService;
+  final SubscriptionService subscriptionService;
+  final ApiService apiService;
 
-  const QuizTab({super.key, required this.quizService});
+  const QuizTab({
+    super.key,
+    required this.quizService,
+    required this.subscriptionService,
+    required this.apiService,
+  });
+
+  @override
+  State<QuizTab> createState() => _QuizTabState();
+}
+
+class _QuizTabState extends State<QuizTab> {
+  String _currency = 'myr';
+
+  int get currentTier => widget.apiService.cachedUserTier;
+  QuizService get quizService => widget.quizService;
+  SubscriptionService get subscriptionService => widget.subscriptionService;
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +127,7 @@ class QuizTab extends StatelessWidget {
                         totalQuestions: completion[cats[i].id]?['total'] ?? 0,
                         answeredQuestions: completion[cats[i].id]?['answered'] ?? 0,
                         completed: completion[cats[i].id]?['completed'] == 1,
+                        locked: cats[i].children.isEmpty && cats[i].tier > currentTier,
                         onTap: () => _onCategoryTap(context, cats[i]),
                       ),
                   ],
@@ -177,6 +199,8 @@ class QuizTab extends StatelessWidget {
   void _onCategoryTap(BuildContext context, Category cat) {
     if (cat.children.isNotEmpty) {
       _showSubcategories(context, cat);
+    } else if (cat.tier > currentTier) {
+      _showUpgradeDialog(context, cat);
     } else {
       _startSession(context, cat);
     }
@@ -329,9 +353,14 @@ class QuizTab extends StatelessWidget {
       await _pushQuestionScreen(context, session.sessionId, cat.name);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        final msg = e.toString();
+        if (msg.contains('tier') || msg.contains('Upgrade') || msg.contains('subscription')) {
+          _showUpgradeDialog(context, cat);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg.replaceFirst('Exception: ', ''))),
+          );
+        }
       }
     }
   }
@@ -359,7 +388,237 @@ class QuizTab extends StatelessWidget {
           value: cubit,
           child: _SubcategoryPage(
             parent: parent,
+            currentTier: currentTier,
             onTap: (child) => _onCategoryTap(context, child),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showUpgradeDialog(BuildContext context, Category cat) {
+    final nextTier = currentTier < cat.tier ? cat.tier : currentTier + 1;
+    if (nextTier > 2) return;
+    const tierPrices = {
+      1: {'myr': 49.90, 'usd': 10.99},
+      2: {'myr': 229.90, 'usd': 50.99},
+    };
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final tierName = nextTier == 2 ? 'All Access' : 'Premium';
+          final tierEmoji = nextTier == 2 ? '👑' : '⭐';
+          final priceText = _currency == 'usd'
+              ? '\$${tierPrices[nextTier]!['usd']!.toStringAsFixed(2)}'
+              : 'RM${tierPrices[nextTier]!['myr']!.toStringAsFixed(2)}';
+
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(20),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: AppColors.outline, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.4),
+                    blurRadius: 0,
+                    offset: const Offset(6, 6),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🔒', style: TextStyle(fontSize: 44)),
+                        const SizedBox(height: 8),
+                        const Text('LOCKED CATEGORY',
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.textPrimary,
+                                letterSpacing: 2)),
+                        const SizedBox(height: 6),
+                        Text(cat.name,
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary)),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text('Upgrade your plan to unlock this category and many more!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textSecondary)),
+                        ),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            Navigator.of(context).push<bool>(
+                              MaterialPageRoute(
+                                builder: (_) => SubscriptionScreen(
+                                  subscriptionService: subscriptionService,
+                                  currentTier: currentTier,
+                                  currency: _currency,
+                                ),
+                              ),
+                            ).then((paid) {
+                              if (context.mounted && paid == true) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Plan upgraded! Refresh to see changes.'),
+                                    backgroundColor: AppColors.success,
+                                  ),
+                                );
+                              }
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(color: AppColors.outline, width: 3),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.4),
+                                  blurRadius: 0,
+                                  offset: const Offset(4, 4),
+                                ),
+                              ],
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(tierEmoji, style: const TextStyle(fontSize: 28)),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              tierName,
+                                              style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: Colors.white,
+                                                  letterSpacing: 1.5),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              priceText,
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white.withValues(alpha: 0.8)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Text('UPGRADE  ➜',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.white,
+                                              letterSpacing: 1)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _currencyOptionDialog('MYR', 'myr', setDialogState),
+                                      const SizedBox(width: 4),
+                                      _currencyOptionDialog('USD', 'usd', setDialogState),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 46)),
+                          child: const Text('CANCEL',
+                              style: TextStyle(fontSize: 13, letterSpacing: 1.5)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Center(
+                          child: Text('✕',
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.error)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _currencyOptionDialog(String label, String value, void Function(void Function()) setDialogState) {
+    final selected = _currency == value;
+    return GestureDetector(
+      onTap: () {
+        setDialogState(() {
+          setState(() => _currency = value);
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: selected ? Colors.white : Colors.white70,
           ),
         ),
       ),
@@ -369,9 +628,10 @@ class QuizTab extends StatelessWidget {
 
 class _SubcategoryPage extends StatelessWidget {
   final Category parent;
+  final int currentTier;
   final void Function(Category) onTap;
 
-  const _SubcategoryPage({required this.parent, required this.onTap});
+  const _SubcategoryPage({required this.parent, required this.currentTier, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -402,6 +662,7 @@ class _SubcategoryPage extends StatelessWidget {
                       totalQuestions: completion[parent.children[i].id]?['total'] ?? 0,
                       answeredQuestions: completion[parent.children[i].id]?['answered'] ?? 0,
                       completed: completion[parent.children[i].id]?['completed'] == 1,
+                      locked: parent.children[i].children.isEmpty && parent.children[i].tier > currentTier,
                       onTap: () => onTap(parent.children[i]),
                     ),
                 ],

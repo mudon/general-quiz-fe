@@ -5,6 +5,7 @@ class Category {
   final String? icon;
   final int depth;
   final String? parentId;
+  final int tier;
   final List<Category> children;
   final int totalQuestions;
   final int answeredQuestions;
@@ -17,6 +18,7 @@ class Category {
     this.icon,
     required this.depth,
     this.parentId,
+    this.tier = 0,
     this.children = const [],
     this.totalQuestions = 0,
     this.answeredQuestions = 0,
@@ -35,6 +37,7 @@ class Category {
       icon: icon,
       depth: depth,
       parentId: parentId,
+      tier: tier,
       children: children,
       totalQuestions: totalQuestions ?? this.totalQuestions,
       answeredQuestions: answeredQuestions ?? this.answeredQuestions,
@@ -49,6 +52,7 @@ class Category {
       path: json['path'] ?? '',
       icon: json['icon'],
       depth: json['depth'] ?? 0,
+      tier: json['tier'] ?? 0,
       parentId: json['parentId']?.toString(),
       children: (json['children'] as List<dynamic>?)
               ?.map((c) => Category.fromJson(c as Map<String, dynamic>))

@@ -12,6 +12,7 @@ import '../services/quiz_service.dart';
 import '../services/review_service.dart';
 import '../services/stats_service.dart';
 import '../services/profile_service.dart';
+import '../services/subscription_service.dart';
 import 'tabs/quiz_tab.dart';
 import 'tabs/review_tab.dart';
 import 'tabs/profile_tab.dart';
@@ -39,6 +40,7 @@ class _MainScreenState extends State<MainScreen> {
     final reviewService = ReviewService(widget.apiService);
     final statsService = StatsService(widget.apiService);
     final profileService = ProfileService(widget.apiService);
+    final subscriptionService = SubscriptionService(widget.apiService);
 
     _tabs = [
       MultiBlocProvider(
@@ -46,7 +48,11 @@ class _MainScreenState extends State<MainScreen> {
           BlocProvider(create: (_) => CategoriesCubit(catService)..load()),
           BlocProvider(create: (_) => CategoryCompletionCubit(catService)..load()),
         ],
-        child: QuizTab(quizService: quizService),
+        child: QuizTab(
+          quizService: quizService,
+          subscriptionService: subscriptionService,
+          apiService: widget.apiService,
+        ),
       ),
       BlocProvider(
         create: (_) => ReviewCubit(reviewService)..load(),
@@ -58,7 +64,7 @@ class _MainScreenState extends State<MainScreen> {
       ),
       BlocProvider(
         create: (_) => ProfileCubit(profileService)..load(),
-        child: ProfileTab(authService: widget.authService),
+        child: ProfileTab(authService: widget.authService, subscriptionService: subscriptionService),
       ),
     ];
   }

@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubits/profile_cubit.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
+import '../../services/subscription_service.dart';
 import '../../theme/app_theme.dart';
+import '../subscription_screen.dart';
 
 const _avatarEmojis = [
   '🧑‍🎓', '🧑‍💻', '🧑‍🔬', '🧑‍🎨', '🧑‍🚀', '🧑‍🏫',
@@ -12,10 +14,22 @@ const _avatarEmojis = [
   '🌟', '🔥', '💎', '🎯', '🎮', '⚡',
 ];
 
-class ProfileTab extends StatelessWidget {
+class ProfileTab extends StatefulWidget {
   final AuthService authService;
+  final SubscriptionService subscriptionService;
 
-  const ProfileTab({super.key, required this.authService});
+  const ProfileTab({
+    super.key,
+    required this.authService,
+    required this.subscriptionService,
+  });
+
+  @override
+  State<ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<ProfileTab> {
+  String _currency = 'myr';
 
   @override
   Widget build(BuildContext context) {
@@ -115,6 +129,8 @@ class ProfileTab extends StatelessWidget {
             if (state.editing) _buildEditForm(context, state, u),
             _buildInfoCard(u),
             const SizedBox(height: 20),
+            _buildTierCard(context, u),
+            const SizedBox(height: 20),
             _buildBadgesSection(context, u),
             const SizedBox(height: 20),
             _buildChangePasswordSection(context, state),
@@ -130,14 +146,6 @@ class ProfileTab extends StatelessWidget {
   }
 
   Widget _buildAvatarSection(BuildContext context, ProfileState state, User u) {
-    final selectedBadge = u.selectedBadgeSlug != null
-        ? u.badges.firstWhere(
-            (b) => b['slug'] == u.selectedBadgeSlug,
-            orElse: () => <String, dynamic>{},
-          )
-        : <String, dynamic>{};
-    final hasSelectedBadge = selectedBadge.isNotEmpty;
-    final badgeName = hasSelectedBadge ? selectedBadge['name'] as String? : null;
     final avatarEmoji = u.avatarValue;
 
     return Column(
@@ -177,49 +185,25 @@ class ProfileTab extends StatelessWidget {
                         ? Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(avatarEmoji ?? '🧑‍🎓', style: const TextStyle(fontSize: 40)),
+                              Text(avatarEmoji ?? u.firstName[0].toUpperCase() + u.lastName[0].toUpperCase(),
+                                  style: TextStyle(fontSize: avatarEmoji != null ? 40 : 38, fontWeight: FontWeight.w900, color: AppColors.primary)),
                               const SizedBox(height: 2),
                               const Text('TAP TO CHANGE',
                                   style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: AppColors.secondary, letterSpacing: 1)),
                             ],
                           )
-                        : Text(avatarEmoji ?? u.firstName[0].toUpperCase(),
+                        : Text(avatarEmoji ?? u.firstName[0].toUpperCase() + u.lastName[0].toUpperCase(),
                             style: TextStyle(fontSize: avatarEmoji != null ? 42 : 38, fontWeight: FontWeight.w900, color: AppColors.primary)),
                   ),
                 ),
               ),
             ),
-            if (hasSelectedBadge)
-              Positioned(
-                bottom: -4,
-                right: -4,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.outline, width: 2.5),
-                    boxShadow: [
-                      BoxShadow(color: AppColors.gold.withValues(alpha: 0.5), blurRadius: 0, offset: const Offset(2, 2)),
-                    ],
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                    child: const Text('🏅', style: TextStyle(fontSize: 16)),
-                  ),
-                ),
-              ),
           ],
         ),
         const SizedBox(height: 16),
         Text(u.displayName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: 2)),
         const SizedBox(height: 4),
         Text(u.email, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
-        if (badgeName != null) ...[
-          const SizedBox(height: 6),
-          Text('🏅 $badgeName', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.gold)),
-        ],
       ],
     );
   }
@@ -252,14 +236,16 @@ class ProfileTab extends StatelessWidget {
                   children: _avatarEmojis.map((emoji) {
                     final isSelected = val == emoji;
                     return GestureDetector(
-                      onTap: () {
-                        context.read<ProfileCubit>().saveProfile(
+                      onTap: () async {
+                        await context.read<ProfileCubit>().saveProfile(
                           context.read<ProfileCubit>().state.user?.firstName ?? '',
                           context.read<ProfileCubit>().state.user?.lastName ?? '',
                           'icon',
                           emoji,
                         );
-                        Navigator.pop(context);
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
@@ -348,6 +334,9 @@ class ProfileTab extends StatelessWidget {
                                   lnCtrl.text.trim(),
                                   null, null,
                                 );
+                                if (context.mounted) {
+                                  context.read<ProfileCubit>().cancelEdit();
+                                }
                                 fnCtrl.dispose();
                                 lnCtrl.dispose();
                               } catch (e) {
@@ -402,6 +391,13 @@ class ProfileTab extends StatelessWidget {
             _infoRow(u.emailVerified ? '✅' : '⏳', 'Email', u.emailVerified ? 'Verified' : 'Not verified', u.emailVerified ? AppColors.success : AppColors.secondary),
             const Divider(height: 24, color: AppColors.outline),
             _infoRow('📅', 'Joined', _formatDate(u.createdAt), AppColors.textSecondary),
+            const Divider(height: 24, color: AppColors.outline),
+            _infoRow(
+              u.tier == 2 ? '👑' : u.tier == 1 ? '⭐' : '🎓',
+              'Plan',
+              u.tier == 2 ? 'All Access' : u.tier == 1 ? 'Premium' : 'Free',
+              u.tier == 2 ? AppColors.gold : u.tier == 1 ? AppColors.secondary : AppColors.primary,
+            ),
           ],
         ),
       ),
@@ -427,6 +423,129 @@ class ProfileTab extends StatelessWidget {
       return '${m[dt.month - 1]} ${dt.year}';
     } catch (_) {
       return dateStr;
+    }
+  }
+
+  Widget _buildTierCard(BuildContext context, User u) {
+    final tierName = u.tier == 2 ? 'All Access' : u.tier == 1 ? 'Premium' : 'Free';
+    final tierEmoji = u.tier == 2 ? '👑' : u.tier == 1 ? '⭐' : '🎓';
+    final tierColor = u.tier == 2 ? AppColors.gold : u.tier == 1 ? AppColors.secondary : AppColors.primary;
+    const tierPrices = {
+      1: {'myr': 49.90, 'usd': 10.99},
+      2: {'myr': 229.90, 'usd': 50.99},
+    };
+    final priceText = u.tier > 0
+        ? _currency == 'usd'
+            ? '\$${tierPrices[u.tier]!['usd']!.toStringAsFixed(2)}'
+            : 'RM${tierPrices[u.tier]!['myr']!.toStringAsFixed(2)}'
+        : '';
+
+    return GestureDetector(
+      onTap: () async {
+        final paid = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => SubscriptionScreen(
+              subscriptionService: widget.subscriptionService,
+              currentTier: u.tier,
+              currency: _currency,
+            ),
+          ),
+        );
+        if (context.mounted) {
+          context.read<ProfileCubit>().load();
+          if (paid == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Plan upgraded!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: tierColor,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.outline, width: 3),
+          boxShadow: [
+            BoxShadow(color: tierColor.withValues(alpha: 0.4), blurRadius: 0, offset: const Offset(4, 4)),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Text(tierEmoji, style: const TextStyle(fontSize: 28)),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tierName,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          priceText.isNotEmpty ? priceText : _tierDesc(u.tier),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.8)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (u.tier < 2)
+                    const Text('UPGRADE  ➜',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _currencyOption('MYR', 'myr'),
+                  const SizedBox(width: 4),
+                  _currencyOption('USD', 'usd'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _currencyOption(String label, String value) {
+    final selected = _currency == value;
+    return GestureDetector(
+      onTap: () => setState(() => _currency = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: selected ? Colors.white : Colors.white70,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _tierDesc(int tier) {
+    switch (tier) {
+      case 2: return 'Unlimited categories';
+      case 1: return '10 categories';
+      default: return '3 categories';
     }
   }
 
@@ -780,7 +899,7 @@ class ProfileTab extends StatelessWidget {
                 final msg = await context.read<ProfileCubit>().verifyNewEmail(token);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg as String)));
-                  await authService.logout();
+                  await widget.authService.logout();
                   if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
                 }
               } catch (e) {
@@ -803,7 +922,7 @@ class ProfileTab extends StatelessWidget {
   Widget _buildLogoutButton(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        await authService.logout();
+        await widget.authService.logout();
         if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
       },
       child: Container(

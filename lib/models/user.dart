@@ -4,6 +4,7 @@ class User {
   final String lastName;
   final String email;
   final String role;
+  final int tier;
   final String? avatarType;
   final String? avatarValue;
   final String? selectedBadgeSlug;
@@ -17,6 +18,7 @@ class User {
     required this.lastName,
     required this.email,
     required this.role,
+    this.tier = 0,
     this.avatarType,
     this.avatarValue,
     this.selectedBadgeSlug,
@@ -34,6 +36,7 @@ class User {
       lastName: json['lastName'] ?? '',
       email: json['email'] ?? '',
       role: json['role'] ?? 'user',
+      tier: json['tier'] ?? 0,
       avatarType: json['avatarType'],
       avatarValue: json['avatarValue'],
       selectedBadgeSlug: json['selectedBadgeSlug'],

@@ -75,13 +75,15 @@ class ApiService {
     return false;
   }
 
-  void cacheUserInfo(String name, String email) {
+  void cacheUserInfo(String name, String email, {int tier = 0}) {
     _prefs?.setString('user_name', name);
     _prefs?.setString('user_email', email);
+    _prefs?.setInt('user_tier', tier);
   }
 
   String? get cachedUserName => _prefs?.getString('user_name');
   String? get cachedUserEmail => _prefs?.getString('user_email');
+  int get cachedUserTier => _prefs?.getInt('user_tier') ?? 0;
 
   // ---------------------------------------------------------------- headers
 

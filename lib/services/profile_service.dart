@@ -13,7 +13,7 @@ class ProfileService {
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
       final user = User.fromJson(data);
-      _api.cacheUserInfo(user.displayName, user.email);
+      _api.cacheUserInfo(user.displayName, user.email, tier: user.tier);
       return user;
     }
     final err = jsonDecode(res.body);
@@ -36,7 +36,7 @@ class ProfileService {
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
       final user = User.fromJson(data);
-      _api.cacheUserInfo(user.displayName, user.email);
+      _api.cacheUserInfo(user.displayName, user.email, tier: user.tier);
       return user;
     }
     final err = jsonDecode(res.body);
