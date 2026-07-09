@@ -17,7 +17,6 @@ import '../theme/app_theme.dart';
 import 'tabs/quiz_tab.dart';
 import 'tabs/review_tab.dart';
 import 'tabs/profile_tab.dart';
-import 'tabs/stats_tab.dart';
 
 class MainScreen extends StatefulWidget {
   final AuthService authService;
@@ -48,22 +47,20 @@ class _MainScreenState extends State<MainScreen> {
       MultiBlocProvider(
         providers: [
           BlocProvider(create: (_) => CategoriesCubit(catService)..load()),
-          BlocProvider(
-              create: (_) => CategoryCompletionCubit(catService)..load()),
+          BlocProvider(create: (_) => CategoryCompletionCubit(catService)..load()),
+          BlocProvider(create: (_) => StatsCubit(statsService)..load()),
+          BlocProvider(create: (_) => ReviewCubit(reviewService)..load()),
         ],
         child: QuizTab(
           quizService: quizService,
           subscriptionService: subscriptionService,
           apiService: widget.apiService,
+          onSwitchToReview: () => setState(() => _currentIndex = 1),
         ),
       ),
       BlocProvider(
         create: (_) => ReviewCubit(reviewService)..load(),
         child: ReviewTab(quizService: quizService),
-      ),
-      BlocProvider(
-        create: (_) => StatsCubit(statsService)..load(),
-        child: const StatsTab(),
       ),
       BlocProvider(
         create: (_) => ProfileCubit(profileService)..load(),
@@ -91,10 +88,9 @@ class _MainScreenState extends State<MainScreen> {
         padding: const EdgeInsets.only(top: 7, bottom: 10),
         child: Row(
           children: [
-            _buildTab(0, '\u{1F9E0}', 'Quiz'),
-            _buildTab(1, '\u{1F4DA}', 'Review'),
-            _buildTab(2, '\u{1F4CA}', 'Stats'),
-            _buildTab(3, '\u{1F464}', 'Profile'),
+          _buildTab(0, '\u{1F9E0}', 'Quiz'),
+          _buildTab(1, '\u{1F4DA}', 'Review'),
+          _buildTab(2, '\u{1F464}', 'Profile'),
           ],
         ),
       ),

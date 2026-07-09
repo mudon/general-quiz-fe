@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubits/categories_cubit.dart';
 import '../../cubits/category_completion_cubit.dart';
+import '../../cubits/review_cubit.dart';
+import '../../cubits/stats_cubit.dart';
 import '../../models/category.dart';
 import '../../services/api_service.dart';
 import '../../services/quiz_service.dart';
@@ -14,12 +16,14 @@ class QuizTab extends StatefulWidget {
   final QuizService quizService;
   final SubscriptionService subscriptionService;
   final ApiService apiService;
+  final VoidCallback? onSwitchToReview;
 
   const QuizTab({
     super.key,
     required this.quizService,
     required this.subscriptionService,
     required this.apiService,
+    this.onSwitchToReview,
   });
 
   @override
@@ -61,6 +65,10 @@ class _QuizTabState extends State<QuizTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeader(),
+                    const SizedBox(height: 14),
+                    _buildStatsRow(context),
+                    const SizedBox(height: 14),
+                    _buildDueCard(context),
                     const SizedBox(height: 14),
                     _sectionLabel('Categories'),
                     ...cats.map((cat) {
@@ -127,13 +135,115 @@ class _QuizTabState extends State<QuizTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 14),
-        Text('Good day, quizzer',
-            style: DeckTheme.spaceGrotesk(fontSize: 19)),
+        Text('Quiz Deck',
+            style: DeckTheme.spaceGrotesk(fontSize: 17)),
         const SizedBox(height: 2),
-        Text('Pick a category to begin',
-            style: DeckTheme.ibmPlexMono(
-                fontSize: 10, color: DeckColors.graphite)),
+        BlocBuilder<StatsCubit, StatsState>(
+          builder: (context, state) {
+            final answered = state.stats?.totalQuestionsAnswered ?? 0;
+            final streak = state.stats?.totalCorrectStreak ?? 0;
+            return Text('$answered questions answered \u00B7 $streak correct in a row',
+                style: DeckTheme.ibmPlexMono(
+                    fontSize: 10, color: DeckColors.graphite));
+          },
+        ),
       ],
+    );
+  }
+
+  Widget _buildStatsRow(BuildContext context) {
+    return BlocBuilder<StatsCubit, StatsState>(
+      builder: (context, state) {
+        final s = state.stats;
+        final answered = s?.totalQuestionsAnswered ?? 0;
+        final streak = s?.totalCorrectStreak ?? 0;
+        final login = s?.currentLoginStreak ?? 0;
+        return Row(
+          children: [
+            _statChip('$answered', 'Answered'),
+            const SizedBox(width: 8),
+            _statChip('$streak', 'Streak'),
+            const SizedBox(width: 8),
+            _statChip('$login', 'Login'),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _statChip(String value, String label) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
+        decoration: BoxDecoration(
+          color: DeckColors.paperDark,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: DeckColors.rule),
+        ),
+        child: Column(
+          children: [
+            Text(value,
+                textAlign: TextAlign.center,
+                style: DeckTheme.spaceGrotesk(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(label,
+                style: DeckTheme.ibmPlexMono(
+                    fontSize: 8, color: DeckColors.graphite)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDueCard(BuildContext context) {
+    return BlocBuilder<ReviewCubit, ReviewState>(
+      builder: (context, revState) {
+        final count = revState.items?.length ?? 0;
+        return GestureDetector(
+          onTap: () => widget.onSwitchToReview?.call(),
+          child: Container(
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: DeckColors.yellowBg,
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(
+                  color: DeckColors.yellow,
+                  width: 1.5),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Due for review',
+                          style: DeckTheme.spaceGrotesk(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text('Spaced-repetition queue',
+                          style: DeckTheme.ibmPlexMono(
+                              fontSize: 9,
+                              color: DeckColors.graphite)),
+                    ],
+                  ),
+                ),
+                Text('$count',
+                    style: DeckTheme.spaceGrotesk(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(width: 4),
+                Text('\u2192',
+                    style: TextStyle(
+                        fontSize: 17,
+                        color: DeckColors.graphiteFaint)),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
