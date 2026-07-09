@@ -13,6 +13,7 @@ import '../services/review_service.dart';
 import '../services/stats_service.dart';
 import '../services/profile_service.dart';
 import '../services/subscription_service.dart';
+import '../theme/app_theme.dart';
 import 'tabs/quiz_tab.dart';
 import 'tabs/review_tab.dart';
 import 'tabs/profile_tab.dart';
@@ -22,7 +23,8 @@ class MainScreen extends StatefulWidget {
   final AuthService authService;
   final ApiService apiService;
 
-  const MainScreen({super.key, required this.authService, required this.apiService});
+  const MainScreen(
+      {super.key, required this.authService, required this.apiService});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -46,7 +48,8 @@ class _MainScreenState extends State<MainScreen> {
       MultiBlocProvider(
         providers: [
           BlocProvider(create: (_) => CategoriesCubit(catService)..load()),
-          BlocProvider(create: (_) => CategoryCompletionCubit(catService)..load()),
+          BlocProvider(
+              create: (_) => CategoryCompletionCubit(catService)..load()),
         ],
         child: QuizTab(
           quizService: quizService,
@@ -64,7 +67,9 @@ class _MainScreenState extends State<MainScreen> {
       ),
       BlocProvider(
         create: (_) => ProfileCubit(profileService)..load(),
-        child: ProfileTab(authService: widget.authService, subscriptionService: subscriptionService),
+        child: ProfileTab(
+            authService: widget.authService,
+            subscriptionService: subscriptionService),
       ),
     ];
   }
@@ -76,32 +81,46 @@ class _MainScreenState extends State<MainScreen> {
         index: _currentIndex,
         children: _tabs,
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        animationDuration: const Duration(milliseconds: 400),
-        destinations: const [
-          NavigationDestination(
-            icon: Text('🧠', style: TextStyle(fontSize: 24)),
-            selectedIcon: Text('🧠', style: TextStyle(fontSize: 24)),
-            label: 'QUIZ',
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: DeckColors.ink, width: 2),
           ),
-          NavigationDestination(
-            icon: Text('📚', style: TextStyle(fontSize: 24)),
-            selectedIcon: Text('📚', style: TextStyle(fontSize: 24)),
-            label: 'REVIEW',
-          ),
-          NavigationDestination(
-            icon: Text('📊', style: TextStyle(fontSize: 24)),
-            selectedIcon: Text('📊', style: TextStyle(fontSize: 24)),
-            label: 'STATS',
-          ),
-          NavigationDestination(
-            icon: Text('😎', style: TextStyle(fontSize: 24)),
-            selectedIcon: Text('😎', style: TextStyle(fontSize: 24)),
-            label: 'PROFILE',
-          ),
-        ],
+          color: DeckColors.paper,
+        ),
+        padding: const EdgeInsets.only(top: 7, bottom: 10),
+        child: Row(
+          children: [
+            _buildTab(0, '\u{1F9E0}', 'Quiz'),
+            _buildTab(1, '\u{1F4DA}', 'Review'),
+            _buildTab(2, '\u{1F4CA}', 'Stats'),
+            _buildTab(3, '\u{1F464}', 'Profile'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTab(int index, String icon, String label) {
+    final active = _currentIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _currentIndex = index),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 17)),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: DeckTheme.ibmPlexMono(
+                fontSize: 8.5,
+                color: active ? DeckColors.ink : DeckColors.graphiteFaint,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_text_field.dart';
-import '../widgets/auth_header.dart';
 
 class RegisterScreen extends StatefulWidget {
   final AuthService authService;
@@ -36,7 +34,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', ''),
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
         );
       }
     } finally {
@@ -57,7 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: DeckColors.paper,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -67,134 +68,160 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const AuthHeader(subtitle: 'Join the quiz fun!'),
-                  const SizedBox(height: 36),
+                  _buildHeader(),
+                  const SizedBox(height: 32),
                   Container(
-                    padding: const EdgeInsets.all(3),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.outline, width: 3),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.secondary.withValues(alpha: 0.3),
-                          blurRadius: 0,
-                          offset: const Offset(5, 5),
-                        ),
-                      ],
+                      color: DeckColors.paper,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: AppTextField(
-                                  label: 'FIRST NAME',
-                                  controller: _firstNameCtrl,
-                                  validator: (v) =>
-                                      v == null || v.isEmpty ? 'Required!' : null,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: AppTextField(
-                                  label: 'LAST NAME',
-                                  controller: _lastNameCtrl,
-                                  validator: (v) =>
-                                      v == null || v.isEmpty ? 'Required!' : null,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          AppTextField(
-                            label: 'EMAIL',
-                            hint: 'you@example.com',
-                            keyboardType: TextInputType.emailAddress,
-                            controller: _emailCtrl,
-                            validator: (v) =>
-                                v == null || v.isEmpty ? 'Email required!' : null,
-                          ),
-                          const SizedBox(height: 16),
-                          AppTextField(
-                            label: 'PASSWORD',
-                            isPassword: true,
-                            controller: _passwordCtrl,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                  'FIRST NAME', '', _firstNameCtrl, null,
+                                  validator: (v) => v == null || v.isEmpty
+                                      ? 'Required!'
+                                      : null),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildTextField(
+                                  'LAST NAME', '', _lastNameCtrl, null,
+                                  validator: (v) => v == null || v.isEmpty
+                                      ? 'Required!'
+                                      : null),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        _buildTextField('EMAIL', 'you@example.com',
+                            _emailCtrl, TextInputType.emailAddress,
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Email required!'
+                                : null),
+                        const SizedBox(height: 14),
+                        _buildTextField(
+                            'PASSWORD', '', _passwordCtrl, null,
+                            obscure: true,
                             validator: (v) {
-                              if (v == null || v.isEmpty) return 'Password required!';
+                              if (v == null || v.isEmpty) {
+                                return 'Password required!';
+                              }
                               if (v.length < 8) return 'Min 8 characters!';
                               return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          AppTextField(
-                            label: 'CONFIRM PASSWORD',
-                            isPassword: true,
-                            controller: _confirmPasswordCtrl,
+                            }),
+                        const SizedBox(height: 14),
+                        _buildTextField(
+                            'CONFIRM PASSWORD', '', _confirmPasswordCtrl, null,
+                            obscure: true,
                             validator: (v) {
-                              if (v != _passwordCtrl.text) return 'Passwords must match!';
+                              if (v != _passwordCtrl.text) {
+                                return 'Passwords must match!';
+                              }
                               return null;
-                            },
-                          ),
-                          const SizedBox(height: 28),
-                          FilledButton(
-                            onPressed: _loading ? null : _register,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.secondary,
-                              shadowColor: AppColors.secondary.withValues(alpha: 0.5),
-                            ),
-                            child: _loading
-                                ? const SizedBox(
-                                    height: 22,
-                                    width: 22,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 3, color: Colors.white),
-                                  )
-                                : const Text('JOIN NOW 🎉'),
-                          ),
-                        ],
-                      ),
+                            }),
+                        const SizedBox(height: 24),
+                        _btnPrimary('JOIN NOW',
+                            _loading ? null : _register,
+                            loading: _loading),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.outline, width: 2.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.2),
-                            blurRadius: 0,
-                            offset: const Offset(3, 3),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('👈 '),
-                          Text(
-                            'BACK TO LOGIN',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.primary,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    child: Text('BACK TO LOGIN',
+                        style: DeckTheme.spaceGrotesk(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: DeckColors.ink)),
                   ),
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: DeckColors.paperDark,
+            shape: BoxShape.circle,
+            border: Border.all(color: DeckColors.rule, width: 2),
+          ),
+          child: const Center(
+            child: Text('\u{1F9E0}', style: TextStyle(fontSize: 36)),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text('Join the quiz fun!',
+            style: DeckTheme.spaceGrotesk(
+                fontSize: 18, color: DeckColors.ink)),
+      ],
+    );
+  }
+
+  Widget _buildTextField(String label, String hint,
+      TextEditingController ctrl, TextInputType? keyboardType,
+      {bool obscure = false, String? Function(String?)? validator}) {
+    return TextFormField(
+      controller: ctrl,
+      obscureText: obscure,
+      keyboardType: keyboardType,
+      style: DeckTheme.literata(fontSize: 14, color: DeckColors.ink),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint.isNotEmpty ? hint : null,
+        labelStyle: DeckTheme.ibmPlexMono(
+            fontSize: 9, color: DeckColors.graphite, letterSpacing: 0.1),
+        hintStyle: DeckTheme.literata(
+            fontSize: 14, color: DeckColors.graphiteFaint),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(9)),
+        filled: true,
+        fillColor: DeckColors.paper,
+      ),
+      validator: validator,
+    );
+  }
+
+  Widget _btnPrimary(String label, VoidCallback? onTap,
+      {bool loading = false}) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: onTap != null ? DeckColors.ink : DeckColors.graphiteFaint,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Center(
+            child: loading
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: DeckColors.paper),
+                  )
+                : Text(label,
+                    style: DeckTheme.spaceGrotesk(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: DeckColors.paper)),
           ),
         ),
       ),

@@ -12,35 +12,27 @@ class StreakBadge extends StatelessWidget {
     if (streak <= 0) return const SizedBox.shrink();
 
     return AnimatedScale(
-      scale: animate ? 1.25 : 1.0,
+      scale: animate ? 1.2 : 1.0,
       duration: const Duration(milliseconds: 350),
       curve: Curves.elasticOut,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.outline, width: 3),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.secondary.withValues(alpha: 0.5),
-              blurRadius: 0,
-              offset: const Offset(4, 4),
-            ),
-          ],
+          color: DeckColors.yellowBg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: DeckColors.yellow),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('🔥', style: const TextStyle(fontSize: 18)),
+            Text('\u{1F525}', style: const TextStyle(fontSize: 14)),
             const SizedBox(width: 4),
             Text(
               '$streak',
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-              ),
+              style: DeckTheme.spaceGrotesk(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: DeckColors.ink),
             ),
           ],
         ),

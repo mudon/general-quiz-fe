@@ -1,159 +1,203 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-class AppColors {
-  AppColors._();
+class DeckColors {
+  DeckColors._();
 
-  static const primary = Color(0xFF9C27B0);
-  static const primaryLight = Color(0xFFE1BEE7);
-  static const primaryBg = Color(0xFFFCE4EC);
+  static const paper = Color(0xFFEFEDE4);
+  static const paperDark = Color(0xFFE4E1D4);
+  static const ink = Color(0xFF20232E);
+  static const graphite = Color(0xFF5B6270);
+  static const graphiteFaint = Color(0xFF9AA0AC);
+  static const blue = Color(0xFF2F55D4);
+  static const blueFaint = Color(0xFFDCE3FA);
+  static const green = Color(0xFF3D7A5C);
+  static const greenFaint = Color(0xFFDEEBE3);
+  static const red = Color(0xFFB0413E);
+  static const redFaint = Color(0xFFF5E1DF);
+  static const yellow = Color(0xFFF2C230);
+  static const yellowBg = Color(0xFFFFF6DC);
+  static const rule = Color(0xFFC9C5B6);
+  static const darkBg = Color(0xFF2A2C33);
 
-  static const secondary = Color(0xFFFF6D00);
-  static const secondaryLight = Color(0xFFFFCC80);
-
-  static const success = Color(0xFF00E676);
-  static const successBg = Color(0xFFE8F5E9);
-
-  static const error = Color(0xFFFF1744);
-  static const errorBg = Color(0xFFFFEBEE);
-
-  static const gold = Color(0xFFFFD600);
-  static const sky = Color(0xFF40C4FF);
-  static const pink = Color(0xFFFF4081);
+  // Keep for backward compat with existing references
+  static const primary = blue;
+  static const primaryLight = blueFaint;
+  static const primaryBg = blueFaint;
+  static const secondary = yellow;
+  static const secondaryLight = yellowBg;
+  static const success = green;
+  static const successBg = greenFaint;
+  static const error = red;
+  static const errorBg = redFaint;
+  static const gold = yellow;
+  static const sky = blue;
+  static const pink = red;
   static const lime = Color(0xFFC6FF00);
-
-  static const surface = Color(0xFFFFF9C4);
-
-  static const textPrimary = Color(0xFF212121);
-  static const textSecondary = Color(0xFF616161);
-
-  static const outline = Color(0xFF212121);
+  static const surface = paper;
+  static const textPrimary = ink;
+  static const textSecondary = graphite;
+  static const outline = ink;
 
   static const List<Color> bubbleColors = [
-    Color(0xFFFF6D00), Color(0xFFFF4081), Color(0xFF00E676),
-    Color(0xFF40C4FF), Color(0xFFFFD600), Color(0xFF9C27B0),
-    Color(0xFF00E5FF), Color(0xFFFF6E40), Color(0xFF76FF03),
+    Color(0xFF2F55D4),
+    Color(0xFF3D7A5C),
+    Color(0xFFB0413E),
+    Color(0xFFF2C230),
+    Color(0xFF5B6270),
+    Color(0xFF9AA0AC),
+    Color(0xFF20232E),
+    Color(0xFFEFEDE4),
+    Color(0xFFE4E1D4),
   ];
 
   static const List<String> bubbleEmojis = [
-    '🔬', '🌍', '🎬', '💻', '⚽',
-    '🍕', '🧬', '🚀', '🧪', '🏛️',
-    '🎵', '🛡️', '🎮', '☕', '🏆',
+    '\u{1F30D}', '\u{1F9EA}', '\u{1F3AC}', '\u{1F4BB}', '\u26BD',
+    '\u{1F354}', '\u{1F9EC}', '\u{1F680}', '\u{1F3DB}\uFE0F',
+    '\u{1F3B5}', '\u{1F6E1}\uFE0F', '\u{1F3AE}', '\u2615', '\u{1F3C6}',
   ];
 
   static String emojiForIndex(int i) => bubbleEmojis[i % bubbleEmojis.length];
 
   static const List<Color> confettiColors = [
-    Color(0xFFFF6D00), Color(0xFFFF4081), Color(0xFFFFD600),
-    Color(0xFF00E676), Color(0xFF40C4FF), Color(0xFF9C27B0),
-    Color(0xFFFF6E40), Color(0xFF00E5FF), Color(0xFFC6FF00),
+    blue,
+    green,
+    red,
+    yellow,
+    Color(0xFF5B6270),
+    Color(0xFF2F55D4),
+    Color(0xFF3D7A5C),
+    Color(0xFFB0413E),
+    Color(0xFFF2C230),
   ];
 }
 
-class AppTheme {
-  AppTheme._();
+class DeckTheme {
+  DeckTheme._();
+
+  static TextStyle spaceGrotesk({
+    double fontSize = 14,
+    FontWeight fontWeight = FontWeight.w700,
+    Color color = DeckColors.ink,
+    double? letterSpacing,
+  }) {
+    return GoogleFonts.spaceGrotesk(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+    );
+  }
+
+  static TextStyle ibmPlexMono({
+    double fontSize = 10,
+    FontWeight fontWeight = FontWeight.w500,
+    Color color = DeckColors.graphite,
+    double? letterSpacing,
+  }) {
+    return GoogleFonts.ibmPlexMono(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+    );
+  }
+
+  static TextStyle literata({
+    double fontSize = 14,
+    FontWeight fontWeight = FontWeight.w400,
+    Color color = DeckColors.ink,
+    double? height,
+  }) {
+    return GoogleFonts.literata(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+    );
+  }
 
   static ThemeData get light {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
-      fontFamily: 'Roboto',
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: DeckColors.paper,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
+        seedColor: DeckColors.ink,
         brightness: Brightness.light,
-      ).copyWith(
-        primary: AppColors.primary,
-        secondary: AppColors.secondary,
-        surface: Colors.white,
-        error: AppColors.error,
+        surface: DeckColors.paper,
+        onSurface: DeckColors.ink,
       ),
-      scaffoldBackgroundColor: AppColors.surface,
+    );
+
+    return base.copyWith(
+      scaffoldBackgroundColor: DeckColors.paper,
       appBarTheme: AppBarTheme(
-        centerTitle: true,
+        centerTitle: false,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: DeckColors.paper,
+        foregroundColor: DeckColors.ink,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 22,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.0,
+        titleTextStyle: DeckTheme.spaceGrotesk(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
         ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 58),
-          shape: StadiumBorder(),
-          elevation: 6,
-          shadowColor: AppColors.primary.withValues(alpha: 0.5),
-          textStyle: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
-          ),
+        shape: const Border(
+          bottom: BorderSide(color: DeckColors.ink, width: 2),
         ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.outline,
-          minimumSize: const Size(double.infinity, 54),
-          shape: StadiumBorder(),
-          side: const BorderSide(color: AppColors.outline, width: 3),
-          backgroundColor: Colors.white,
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.0,
-          ),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: AppColors.outline, width: 3),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.4), width: 2.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: AppColors.primary, width: 3),
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        elevation: 8,
-        backgroundColor: Colors.white,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.15),
-        height: 72,
+        elevation: 0,
+        backgroundColor: DeckColors.paper,
+        indicatorColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        height: 68,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              color: AppColors.primary,
-              letterSpacing: 0.8,
+            return DeckTheme.ibmPlexMono(
+              fontSize: 8.5,
+              fontWeight: FontWeight.w600,
+              color: DeckColors.ink,
             );
           }
-          return const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textSecondary,
+          return DeckTheme.ibmPlexMono(
+            fontSize: 8.5,
+            fontWeight: FontWeight.w500,
+            color: DeckColors.graphiteFaint,
           );
         }),
       ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(9),
+          borderSide: const BorderSide(color: DeckColors.rule, width: 1.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(9),
+          borderSide: const BorderSide(color: DeckColors.rule, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(9),
+          borderSide: const BorderSide(color: DeckColors.blue, width: 2),
+        ),
+        filled: true,
+        fillColor: DeckColors.paper,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: AppColors.textPrimary,
-        contentTextStyle: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+        backgroundColor: DeckColors.ink,
+        contentTextStyle: DeckTheme.ibmPlexMono(
+          fontSize: 10,
+          color: DeckColors.paper,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: DeckColors.paperDark,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(9),
         ),
       ),
     );

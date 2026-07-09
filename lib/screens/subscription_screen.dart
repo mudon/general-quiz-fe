@@ -19,7 +19,8 @@ class SubscriptionScreen extends StatefulWidget {
   State<SubscriptionScreen> createState() => _SubscriptionScreenState();
 }
 
-class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBindingObserver {
+class _SubscriptionScreenState extends State<SubscriptionScreen>
+    with WidgetsBindingObserver {
   List<PlanInfo>? _plans;
   bool _loading = true;
   String? _error;
@@ -43,13 +44,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _paymentPending && mounted) {
       _paymentPending = false;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Payment successful! Pull down to refresh.'),
-          backgroundColor: AppColors.success,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Payment successful! Pull down to refresh.',
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
+        );
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) Navigator.of(context).pop(true);
       });
@@ -57,19 +57,33 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final plans = await widget.subscriptionService.getPlans();
-      if (mounted) setState(() { _plans = plans; _loading = false; });
+      if (mounted) {
+        setState(() {
+          _plans = plans;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
   Future<void> _checkout(String plan) async {
     setState(() => _checkingOut = plan);
     try {
-      final result = await widget.subscriptionService.checkout(plan, widget.currency);
+      final result =
+          await widget.subscriptionService.checkout(plan, widget.currency);
       final url = result['paymentUrl'] as String?;
       if (url != null && mounted) {
         final uri = Uri.parse(url);
@@ -81,7 +95,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', ''),
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
         );
       }
     } finally {
@@ -92,21 +109,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: DeckColors.paper,
       appBar: AppBar(
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('💎', style: TextStyle(fontSize: 24)),
-            SizedBox(width: 8),
-            Text('UPGRADE PLAN',
-                style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
-          ],
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        title: Text('Upgrade Plan'),
+        leading: _backButton(context),
       ),
       body: _buildBody(),
     );
@@ -115,15 +121,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
   Widget _buildBody() {
     if (_loading) {
       return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('💎', style: TextStyle(fontSize: 56)),
-            SizedBox(height: 12),
-            Text('Loading plans...',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textSecondary)),
-          ],
-        ),
+        child: Text('Loading plans...',
+            style: TextStyle(fontSize: 14, color: DeckColors.graphite)),
       );
     }
 
@@ -134,12 +133,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('😵', style: TextStyle(fontSize: 56)),
-              const SizedBox(height: 12),
-              Text(_error!, textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: DeckTheme.ibmPlexMono(color: DeckColors.graphite)),
               const SizedBox(height: 16),
-              FilledButton(onPressed: _load, child: const Text('TRY AGAIN')),
+              _btnPrimary('TRY AGAIN', () => _load()),
             ],
           ),
         ),
@@ -147,9 +145,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
     }
 
     if (_plans == null || _plans!.isEmpty) {
-      return const Center(
-        child: Text('😴 No plans available.',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textSecondary)),
+      return Center(
+        child: Text('No plans available.',
+            style: DeckTheme.spaceGrotesk(
+                fontSize: 14, color: DeckColors.graphite)),
       );
     }
 
@@ -158,50 +157,26 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
       child: Column(
         children: [
           Container(
-            margin: const EdgeInsets.only(bottom: 20),
-            padding: const EdgeInsets.all(3),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppColors.outline, width: 3),
-              boxShadow: [
-                BoxShadow(color: AppColors.gold.withValues(alpha: 0.3), blurRadius: 0, offset: const Offset(5, 5)),
+              color: DeckColors.ink,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Column(
+              children: [
+                Text('Current: ${_tierName(widget.currentTier)}',
+                    style: DeckTheme.spaceGrotesk(
+                        fontSize: 14, color: DeckColors.paper)),
+                const SizedBox(height: 4),
+                Text(_tierDesc(widget.currentTier),
+                    style: DeckTheme.ibmPlexMono(
+                        fontSize: 9, color: DeckColors.graphiteFaint)),
               ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  const Text('📋', style: TextStyle(fontSize: 40)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Current: ${_tierName(widget.currentTier)}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: 1.5),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _tierDesc(widget.currentTier),
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
-            ),
           ),
+          const SizedBox(height: 20),
+          ..._plans!.map((plan) => _buildPlanCard(plan)),
           const SizedBox(height: 24),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: _plans!.map((plan) => Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: plan != _plans!.last ? 12 : 0,
-                  ),
-                  child: _buildPlanCard(plan),
-                ),
-              )).toList(),
-            ),
-          ),
-          const SizedBox(height: 32),
         ],
       ),
     );
@@ -211,191 +186,144 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
     final isCurrent = plan.tier == widget.currentTier;
     final isLower = plan.tier < widget.currentTier;
     final isFree = plan.tier == 0;
-    final isPopular = plan.tier == 1;
-
-    final bgColor = isCurrent
-        ? AppColors.success
-        : isPopular
-            ? AppColors.sky
-            : Colors.white;
-
-    final accentColor = isCurrent
-        ? AppColors.success
-        : isPopular
-            ? AppColors.primary
-            : isLower
-                ? AppColors.textSecondary
-                : plan.tier == 2
-                    ? AppColors.gold
-                    : AppColors.primary;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(3),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.outline, width: 3),
-        boxShadow: [
-          BoxShadow(color: accentColor.withValues(alpha: 0.3), blurRadius: 0, offset: const Offset(5, 5)),
-        ],
+        color: isCurrent ? DeckColors.ink : DeckColors.paperDark,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: DeckColors.rule),
       ),
-      child: Stack(
+      child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Row(
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isCurrent
+                      ? DeckColors.paper.withAlpha(30)
+                      : DeckColors.paper,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Center(
+                  child: Text(
+                    plan.tier == 2
+                        ? '\u{1F451}'
+                        : plan.tier == 1
+                            ? '\u2B50'
+                            : '\u{1F393}',
+                    style: const TextStyle(fontSize: 22),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (isCurrent)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: DeckColors.paper.withAlpha(30),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('CURRENT',
+                      style: DeckTheme.ibmPlexMono(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w600,
+                          color: DeckColors.paper)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: isCurrent ? Colors.white.withValues(alpha: 0.2) : accentColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _planIcon(plan.tier),
-                          style: const TextStyle(fontSize: 26),
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    if (isCurrent)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text('CURRENT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.success)),
-                      ),
+                    Text(plan.name,
+                        style: DeckTheme.spaceGrotesk(
+                            fontSize: 16,
+                            color: isCurrent
+                                ? DeckColors.paper
+                                : DeckColors.ink)),
+                    if (!isFree) ...[
+                      const SizedBox(height: 2),
+                      Text(_formatPrice(plan),
+                          style: DeckTheme.spaceGrotesk(
+                              fontSize: 13,
+                              color: isCurrent
+                                  ? DeckColors.graphiteFaint
+                                  : DeckColors.blue)),
+                    ],
+                    const SizedBox(height: 2),
+                    Text(_tierDesc(plan.tier),
+                        style: DeckTheme.ibmPlexMono(
+                            fontSize: 9,
+                            color: isCurrent
+                                ? DeckColors.graphiteFaint
+                                : DeckColors.graphite)),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        plan.name,
-                        style: TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w900, color: isCurrent ? Colors.white : AppColors.textPrimary, letterSpacing: 1.5),
-                      ),
-                      const SizedBox(height: 4),
-                      if (!isFree)
-                        Text(
-                          _formatPrice(plan),
-                          style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w800, color: isCurrent ? Colors.white.withValues(alpha: 0.85) : AppColors.primary),
-                        ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _tierDesc(plan.tier),
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w700, color: isCurrent ? Colors.white70 : AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                if (!isFree) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.check_circle, color: AppColors.success, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${plan.categoryLimit ?? 'All'} categories',
-                        style: TextStyle(fontWeight: FontWeight.w700, color: isCurrent ? Colors.white : AppColors.textPrimary),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 14),
-                if (isCurrent)
-                  _buildButton('YOU ARE HERE', accentColor, null, true)
-                else if (isLower)
-                  _buildButton('OWNED', accentColor, null, true)
-                else
-                  _buildButton(
-                    _checkingOut == plan.plan ? 'OPENING STRIPE...' : 'UPGRADE',
-                    accentColor,
-                    () => _checkout(plan.plan),
-                    false,
-                    _checkingOut == plan.plan,
-                  ),
-              ],
-            ),
-          ),
-          if (isPopular)
-            Positioned(
-              top: 0,
-              right: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: accentColor,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
-                ),
-                child: const Text('POPULAR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (isCurrent)
+            _disabledBtn('YOU ARE HERE')
+          else if (isLower)
+            _disabledBtn('OWNED')
+          else
+            _btnPrimary(
+              _checkingOut == plan.plan
+                  ? 'OPENING STRIPE...'
+                  : 'UPGRADE',
+              _checkingOut == plan.plan
+                  ? null
+                  : () => _checkout(plan.plan),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildButton(String text, Color color, VoidCallback? onTap, bool isCurrent, [bool loading = false]) {
+  Widget _disabledBtn(String label) {
     return SizedBox(
       width: double.infinity,
-      child: isCurrent
-          ? Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
-              ),
-            )
-          : FilledButton(
-              onPressed: loading ? null : onTap,
-              style: FilledButton.styleFrom(
-                backgroundColor: color,
-                minimumSize: const Size(double.infinity, 48),
-                shadowColor: color.withValues(alpha: 0.4),
-              ),
-              child: loading
-                  ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
-                  : Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-            ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: DeckColors.graphiteFaint,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Center(
+          child: Text(label,
+              style: DeckTheme.spaceGrotesk(
+                  fontSize: 13.5, color: DeckColors.paper)),
+        ),
+      ),
     );
-  }
-
-  String _planIcon(int tier) {
-    switch (tier) {
-      case 2: return '👑';
-      case 1: return '⭐';
-      default: return '🎓';
-    }
   }
 
   String _tierName(int tier) {
     final plan = _plans?.where((p) => p.tier == tier).firstOrNull;
     if (plan == null || tier == 0) return 'Free';
-    final price = widget.currency == 'usd' ? '\$${plan.priceUSD.toStringAsFixed(2)}' : 'RM${plan.priceMYR.toStringAsFixed(2)}';
-    return '$price — ${plan.name}';
+    final price = widget.currency == 'usd'
+        ? '\$${plan.priceUSD.toStringAsFixed(2)}'
+        : 'RM${plan.priceMYR.toStringAsFixed(2)}';
+    return '$price \u2014 ${plan.name}';
   }
 
   String _tierDesc(int tier) {
     switch (tier) {
-      case 2: return 'Unlimited categories';
-      case 1: return '10 categories';
-      default: return '3 categories';
+      case 2:
+        return 'Unlimited categories';
+      case 1:
+        return '10 categories';
+      default:
+        return '3 categories';
     }
   }
 
@@ -404,5 +332,48 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
       return '\$${plan.priceUSD.toStringAsFixed(2)}';
     }
     return 'RM${plan.priceMYR.toStringAsFixed(2)}';
+  }
+
+  Widget _btnPrimary(String label, VoidCallback? onTap) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: onTap != null ? DeckColors.ink : DeckColors.graphiteFaint,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Center(
+            child: Text(label,
+                style: DeckTheme.spaceGrotesk(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: DeckColors.paper)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _backButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).pop(),
+      child: Container(
+        width: 28,
+        height: 28,
+        margin: const EdgeInsets.only(left: 16),
+        decoration: BoxDecoration(
+          color: DeckColors.paperDark,
+          shape: BoxShape.circle,
+          border: Border.all(color: DeckColors.rule),
+        ),
+        child: const Center(
+          child: Text('\u2190',
+              style: TextStyle(fontSize: 13, color: DeckColors.ink)),
+        ),
+      ),
+    );
   }
 }

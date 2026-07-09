@@ -1,10 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/question.dart';
-import '../../models/quiz_session.dart';
 import '../../services/quiz_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/streak_badge.dart';
-import '../../widgets/confetti_overlay.dart';
 
 class QuestionScreen extends StatefulWidget {
   final QuizService quizService;
@@ -38,35 +36,19 @@ class _QuestionScreenState extends State<QuestionScreen>
 
   AnswerResult? _result;
   bool _submitting = false;
-  int _streak = 0;
-  bool _showConfetti = false;
-  bool _resultAnimating = false;
 
-  NextQuestionResponse? _next;
   int _sessionAnswered = 0;
   int _sessionTotal = 0;
   bool _sessionCompleted = false;
 
-  late AnimationController _cardController;
-  late Animation<double> _cardScale;
-
   @override
   void initState() {
     super.initState();
-    _cardController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _cardScale = CurvedAnimation(
-      parent: _cardController,
-      curve: Curves.elasticOut,
-    );
     _loadQuestion();
   }
 
   @override
   void dispose() {
-    _cardController.dispose();
     _fillInController.dispose();
     super.dispose();
   }
@@ -80,8 +62,6 @@ class _QuestionScreenState extends State<QuestionScreen>
       _selectedSingle = null;
       _selectedMultiple.clear();
       _fillInController.clear();
-      _showConfetti = false;
-      _resultAnimating = false;
     });
     try {
       if (widget.isReviewMode && widget.initialQuestion != null) {
@@ -89,7 +69,6 @@ class _QuestionScreenState extends State<QuestionScreen>
           _question = widget.initialQuestion;
           _loading = false;
         });
-        _cardController.forward(from: 0);
         return;
       }
 
@@ -105,17 +84,18 @@ class _QuestionScreenState extends State<QuestionScreen>
         } else {
           setState(() {
             _question = next.question;
-            _next = next;
             _sessionTotal = next.totalQuestions;
             _sessionAnswered = next.answeredCount;
             _loading = false;
           });
-          _cardController.forward(from: 0);
         }
       }
     } catch (e) {
       if (mounted) {
-        setState(() { _error = e.toString(); _loading = false; });
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
       }
     }
   }
@@ -136,29 +116,23 @@ class _QuestionScreenState extends State<QuestionScreen>
         submittedSingleChoice: _selectedSingle,
         submittedMultipleChoice:
             _selectedMultiple.isNotEmpty ? _selectedMultiple.toList() : null,
-        submittedFillIn: q.isFillInBlank ? _fillInController.text.trim() : null,
+        submittedFillIn:
+            q.isFillInBlank ? _fillInController.text.trim() : null,
       );
       if (mounted) {
         setState(() {
           _result = result;
           _submitting = false;
-          _resultAnimating = true;
-          if (result.isCorrect) {
-            _streak++;
-            _showConfetti = true;
-          } else {
-            _streak = 0;
-          }
-        });
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) setState(() => _resultAnimating = false);
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() => _submitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(
+              content: Text(e.toString(),
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
         );
       }
     }
@@ -167,59 +141,51 @@ class _QuestionScreenState extends State<QuestionScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: DeckColors.paper,
       appBar: AppBar(
         title: Text(
-          _sessionCompleted
-              ? '${widget.categoryName}  ✅'
-              : _sessionTotal > 0
-                  ? '${widget.categoryName}  ${_sessionAnswered + 1}/$_sessionTotal'
-                  : widget.categoryName,
-          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+          _sessionCompleted ? 'Session complete' : widget.categoryName,
+          style: DeckTheme.spaceGrotesk(fontSize: 17),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: _backButton(context),
         actions: [
-          if (_resultAnimating && _streak > 0)
+          if (!_sessionCompleted && _sessionTotal > 0)
             Padding(
-              padding: const EdgeInsets.only(right: 12, top: 12),
-              child: StreakBadge(streak: _streak, animate: true),
-            )
-          else if (_streak > 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 12, top: 12),
-              child: StreakBadge(streak: _streak),
+              padding: const EdgeInsets.only(right: 16),
+              child: _buildPill(
+                  'Q ${_sessionAnswered + 1}/$_sessionTotal'),
             ),
         ],
       ),
-      body: Stack(
-        children: [
-          _buildBody(),
-          if (_showConfetti)
-            ConfettiOverlay(
-              play: _showConfetti,
-              key: ValueKey('confetti_${DateTime.now().millisecondsSinceEpoch}'),
-            ),
-        ],
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildPill(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: DeckColors.graphiteFaint),
       ),
+      child: Text(text,
+          style: DeckTheme.ibmPlexMono(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              color: DeckColors.graphite)),
     );
   }
 
   Widget _buildBody() {
     if (_loading) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('🤔', style: TextStyle(fontSize: 64)),
-            const SizedBox(height: 16),
-            const Text('Finding a question...',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textSecondary)),
+            Text('\u{1F914}', style: TextStyle(fontSize: 48)),
+            SizedBox(height: 12),
+            Text('Finding a question...',
+                style: TextStyle(fontSize: 14, color: DeckColors.graphite)),
           ],
         ),
       );
@@ -232,14 +198,11 @@ class _QuestionScreenState extends State<QuestionScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('😵', style: TextStyle(fontSize: 64)),
-              const SizedBox(height: 12),
-              Text(_error!, textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w700)),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: DeckTheme.ibmPlexMono(color: DeckColors.graphite)),
               const SizedBox(height: 16),
-              FilledButton(onPressed: _loadQuestion, child: const Text('TRY AGAIN')),
+              _btn('TRY AGAIN', () => _loadQuestion()),
             ],
           ),
         ),
@@ -257,17 +220,11 @@ class _QuestionScreenState extends State<QuestionScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('😴', style: TextStyle(fontSize: 64)),
-              const SizedBox(height: 12),
-              const Text('No questions here yet!',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textSecondary)),
+              Text('No questions here yet!',
+                  style: DeckTheme.spaceGrotesk(
+                      fontSize: 16, color: DeckColors.graphite)),
               const SizedBox(height: 16),
-              FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('GO BACK')),
+              _btn('GO BACK', () => Navigator.of(context).pop()),
             ],
           ),
         ),
@@ -276,277 +233,158 @@ class _QuestionScreenState extends State<QuestionScreen>
 
     final q = _question!;
     final answered = _result != null;
+    final progress = _sessionTotal > 0
+        ? (_sessionAnswered + (answered ? 1 : 0)) / _sessionTotal
+        : 0.0;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildSpeechBubble(q, answered),
-          const SizedBox(height: 24),
-          if (answered)
-            _buildResultBubble()
-          else ...[
-            _buildOptions(q),
-            const SizedBox(height: 28),
-            _buildSubmitButton(q),
-          ],
-          const SizedBox(height: 32),
-          if (answered)
-            _buildNextButton(),
-        ],
-      ),
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildProgress(progress),
+                _buildMeta(q),
+                const SizedBox(height: 12),
+                Text(q.questionText,
+                    style: DeckTheme.literata(
+                        fontSize: 16.5, height: 1.4)),
+                const SizedBox(height: 14),
+                if (answered)
+                  _buildRevealedOptions(q)
+                else
+                  _buildOptions(q),
+                if (answered) ...[
+                  const SizedBox(height: 14),
+                  _buildFeedback(),
+                ],
+              ],
+            ),
+          ),
+        ),
+        if (!answered)
+          _buildBottomAction(q)
+        else
+          _buildBottomNext(),
+      ],
     );
   }
 
-  Widget _buildCompletedScreen() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: AppColors.success,
-                borderRadius: BorderRadius.circular(40),
-                border: Border.all(color: AppColors.outline, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.success.withValues(alpha: 0.4),
-                    blurRadius: 0,
-                    offset: const Offset(6, 6),
-                  ),
-                ],
-              ),
-              child: const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('🎉', style: TextStyle(fontSize: 64)),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'ALL DONE!',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                color: AppColors.textPrimary,
-                letterSpacing: 3,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'You answered $_sessionTotal questions\nin ${widget.categoryName}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 28),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Text('👈', style: TextStyle(fontSize: 16)),
-              label: const Text('BACK TO CATEGORIES'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shadowColor: AppColors.primary.withValues(alpha: 0.5),
-              ),
-            ),
-          ],
+  Widget _buildProgress(double progress) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: Container(
+          height: 4,
+          color: DeckColors.rule,
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: progress.clamp(0.0, 1.0),
+            child: Container(color: DeckColors.blue),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSpeechBubble(Question q, bool answered) {
-    final color = q.isSingleChoice
-        ? AppColors.primary
-        : q.isMultipleChoice
-            ? AppColors.secondary
-            : AppColors.sky;
+  Widget _buildMeta(Question q) {
+    String type;
+    switch (q.questionType) {
+      case 'multiple_choice':
+        type = 'Multiple choice';
+        break;
+      case 'fill_in_blank':
+        type = 'Fill in the blank';
+        break;
+      default:
+        type = 'Single choice';
+    }
 
-    return ScaleTransition(
-      scale: _cardScale,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.outline, width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.3),
-                  blurRadius: 0,
-                  offset: const Offset(6, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        q.isSingleChoice
-                            ? '🎯 PICK ONE'
-                            : q.isMultipleChoice
-                                ? '✅ PICK ALL'
-                                : '✏️ TYPE IT',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    if (answered && _result != null)
-                      _result!.isCorrect
-                          ? const Text('🎉', style: TextStyle(fontSize: 28))
-                          : const Text('😅', style: TextStyle(fontSize: 28)),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  q.questionText,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    height: 1.5,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                if (answered && _result?.explanation != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: _result!.isCorrect
-                          ? AppColors.successBg
-                          : AppColors.errorBg,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: _result!.isCorrect
-                            ? AppColors.success
-                            : AppColors.error,
-                        width: 2.5,
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _result!.isCorrect ? '💡 ' : '📝 ',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        Expanded(
-                          child: Text(
-                            _result!.explanation!,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: _result!.isCorrect
-                                  ? AppColors.success
-                                  : AppColors.error,
-                              height: 1.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            q.categoryPath.isNotEmpty ? q.categoryPath : widget.categoryName,
+            style: DeckTheme.ibmPlexMono(fontSize: 10),
+            overflow: TextOverflow.ellipsis,
           ),
-          CustomPaint(
-            size: const Size(30, 16),
-            painter: _SpeechTrianglePainter(color: AppColors.outline),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: DeckColors.graphiteFaint),
           ),
-        ],
-      ),
+          child: Text(type,
+              style: DeckTheme.ibmPlexMono(
+                  fontSize: 8.5, letterSpacing: 0.06)),
+        ),
+      ],
     );
   }
 
   Widget _buildOptions(Question q) {
-    if (q.isSingleChoice) return _buildSingleChoiceOptions(q);
-    if (q.isMultipleChoice) return _buildMultipleChoiceOptions(q);
-    return _buildFillInBlankInput();
+    if (q.isSingleChoice) return _buildSingleChoiceOptions(q, false);
+    if (q.isMultipleChoice) return _buildMultipleChoiceOptions(q, false);
+    return _buildFillInBlankInput(false);
   }
 
-  Widget _buildSingleChoiceOptions(Question q) {
+  Widget _buildRevealedOptions(Question q) {
+    if (q.isSingleChoice) return _buildSingleChoiceOptions(q, true);
+    if (q.isMultipleChoice) return _buildMultipleChoiceOptions(q, true);
+    return _buildFillInBlankInput(true);
+  }
+
+  Widget _buildSingleChoiceOptions(Question q, bool revealed) {
     return Column(
-      children: q.options.asMap().entries.map((entry) {
-        final idx = entry.key;
-        final opt = entry.value;
+      children: q.options.map((opt) {
         final isSelected = _selectedSingle == opt.id;
-        final emojis = ['🅰️', '🅱️', '©️', '🇩'];
-        final emoji = emojis[idx % emojis.length];
+        final isCorrect = revealed &&
+            _result?.correctAnswer.singleChoiceAnswer == opt.id;
+        final isIncorrectSelection =
+            revealed && isSelected && !isCorrect;
+
+        Color? borderColor;
+        Color? bgColor;
+        if (isIncorrectSelection) {
+          borderColor = DeckColors.red;
+          bgColor = DeckColors.redFaint;
+        } else if (isCorrect) {
+          borderColor = DeckColors.green;
+          bgColor = DeckColors.greenFaint;
+        } else if (isSelected) {
+          borderColor = DeckColors.blue;
+          bgColor = DeckColors.blueFaint;
+        }
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 8),
           child: GestureDetector(
-            onTap: () => setState(() => _selectedSingle = opt.id),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(3),
+            onTap: revealed ? null : () => setState(() => _selectedSingle = opt.id),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : Colors.white,
-                borderRadius: BorderRadius.circular(22),
+                color: bgColor ?? DeckColors.paper,
+                borderRadius: BorderRadius.circular(9),
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.outline,
-                  width: 3,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.5),
-                          blurRadius: 0,
-                          offset: const Offset(4, 4),
-                        )
-                      ]
-                    : [
-                        BoxShadow(
-                          color: AppColors.outline.withValues(alpha: 0.2),
-                          blurRadius: 0,
-                          offset: const Offset(4, 4),
-                        )
-                      ],
+                    color: borderColor ?? DeckColors.rule, width: 1.5),
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                child: Row(
-                  children: [
-                    Text(emoji, style: const TextStyle(fontSize: 18)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        opt.text,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: isSelected ? Colors.white : AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    if (isSelected)
-                      const Icon(Icons.check_circle, color: Colors.white, size: 24),
-                  ],
-                ),
+              child: Row(
+                children: [
+                  _buildBubble(
+                      (isCorrect || isSelected) && !isIncorrectSelection,
+                      borderColor ?? DeckColors.graphite,
+                      false),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(opt.text,
+                        style: DeckTheme.spaceGrotesk(fontSize: 12.5)),
+                  ),
+                ],
               ),
             ),
           ),
@@ -555,303 +393,210 @@ class _QuestionScreenState extends State<QuestionScreen>
     );
   }
 
-  Widget _buildMultipleChoiceOptions(Question q) {
+  Widget _buildMultipleChoiceOptions(Question q, bool revealed) {
     return Column(
-      children: [
-        Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          decoration: BoxDecoration(
-            color: AppColors.secondary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Text(
-            '👇 TAP ALL CORRECT ANSWERS',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              color: AppColors.secondary,
-              letterSpacing: 1,
-            ),
-          ),
-        ),
-        ...q.options.map((opt) {
-          final isSelected = _selectedMultiple.contains(opt.id);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  isSelected
-                      ? _selectedMultiple.remove(opt.id)
-                      : _selectedMultiple.add(opt.id);
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.secondary : Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: isSelected ? AppColors.secondary : AppColors.outline,
-                    width: 3,
+      children: q.options.map((opt) {
+        final isSelected = _selectedMultiple.contains(opt.id);
+        final isCorrect = revealed &&
+            (_result?.correctAnswer.multipleChoiceAnswer
+                    ?.contains(opt.id) ??
+                false);
+        final isIncorrectSelection =
+            revealed && isSelected && !isCorrect;
+
+        Color? borderColor;
+        Color? bgColor;
+        if (isIncorrectSelection) {
+          borderColor = DeckColors.red;
+          bgColor = DeckColors.redFaint;
+        } else if (isCorrect) {
+          borderColor = DeckColors.green;
+          bgColor = DeckColors.greenFaint;
+        } else if (isSelected) {
+          borderColor = DeckColors.blue;
+          bgColor = DeckColors.blueFaint;
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GestureDetector(
+            onTap: revealed
+                ? null
+                : () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedMultiple.remove(opt.id);
+                      } else {
+                        _selectedMultiple.add(opt.id);
+                      }
+                    });
+                  },
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              decoration: BoxDecoration(
+                color: bgColor ?? DeckColors.paper,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                    color: borderColor ?? DeckColors.rule, width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  _buildBubble(
+                      (isCorrect || isSelected) && !isIncorrectSelection,
+                      borderColor ?? DeckColors.graphite,
+                      true),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(opt.text,
+                        style: DeckTheme.spaceGrotesk(fontSize: 12.5)),
                   ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppColors.secondary.withValues(alpha: 0.5),
-                            blurRadius: 0,
-                            offset: const Offset(4, 4),
-                          )
-                        ]
-                      : [
-                          BoxShadow(
-                            color: AppColors.outline.withValues(alpha: 0.2),
-                            blurRadius: 0,
-                            offset: const Offset(4, 4),
-                          )
-                        ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Row(
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 26,
-                        height: 26,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: isSelected ? Colors.white : Colors.transparent,
-                          border: Border.all(
-                            color: isSelected ? Colors.white : AppColors.outline,
-                            width: 2.5,
-                          ),
-                        ),
-                        child: isSelected
-                            ? const Icon(Icons.check, color: AppColors.secondary, size: 18)
-                            : null,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          opt.text,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color:
-                                isSelected ? Colors.white : AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ),
-          );
-        }),
-      ],
+          ),
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildFillInBlankInput() {
+  Widget _buildBubble(bool checked, Color borderColor, bool isCheckbox) {
     return Container(
-      padding: const EdgeInsets.all(3),
+      width: 19,
+      height: 19,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.outline, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.sky.withValues(alpha: 0.3),
-            blurRadius: 0,
-            offset: const Offset(5, 5),
-          ),
-        ],
+        color: DeckColors.paper,
+        borderRadius:
+            BorderRadius.circular(isCheckbox ? 5 : 19),
+        border: Border.all(color: borderColor, width: 2),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Text('✏️', style: TextStyle(fontSize: 18)),
-                SizedBox(width: 8),
-                Text(
-                  'TYPE YOUR ANSWER',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textSecondary,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _fillInController,
-              textInputAction: TextInputAction.done,
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) => _submitAnswer(),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Type here...',
-                hintStyle: TextStyle(
-                  color: AppColors.outline.withValues(alpha: 0.4),
-                  fontWeight: FontWeight.w600,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.outline, width: 2.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.sky, width: 3),
-                ),
-                filled: true,
-                fillColor: AppColors.sky.withValues(alpha: 0.05),
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: checked
+          ? CustomPaint(
+              painter: _CheckmarkPainter(borderColor),
+              size: const Size(19, 19),
+            )
+          : null,
     );
   }
 
-  Widget _buildResultBubble() {
-    if (_result == null) return const SizedBox.shrink();
-    final r = _result!;
+  Widget _buildFillInBlankInput(bool revealed) {
+    if (revealed && _result != null) {
+      final isCorrect = _result!.isCorrect;
+      final submitted = _fillInController.text.trim();
+      final correctAnswer = _result!.correctAnswer.fillInAnswer ?? '';
 
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: r.isCorrect ? AppColors.success : AppColors.error,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.outline, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: (r.isCorrect ? AppColors.success : AppColors.error).withValues(alpha: 0.5),
-            blurRadius: 0,
-            offset: const Offset(5, 5),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            decoration: BoxDecoration(
+              color:
+                  isCorrect ? DeckColors.greenFaint : DeckColors.redFaint,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(
+                  color: isCorrect ? DeckColors.green : DeckColors.red,
+                  width: 1.5),
+            ),
+            child: Text(
+              submitted.isNotEmpty ? submitted : correctAnswer,
+              style: DeckTheme.literata(
+                  fontSize: 14, color: DeckColors.ink),
+            ),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            AnimatedScale(
-              scale: _resultAnimating ? 1.4 : 1.0,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.elasticOut,
-              child: Text(
-                r.isCorrect ? '🎉' : '😅',
-                style: const TextStyle(fontSize: 52),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              r.isCorrect ? 'AWESOME!' : 'OOPS!',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              r.isCorrect ? 'You got it right!' : 'Better luck next time!',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Colors.white.withValues(alpha: 0.8),
-              ),
-            ),
-            if (!r.isCorrect) ...[
-              const SizedBox(height: 14),
-              _buildCorrectAnswer(r),
-            ],
-            if (r.newBadges.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🏅', style: TextStyle(fontSize: 16)),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        'Badge: ${r.newBadges.join(', ')}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          if (!isCorrect) ...[
+            const SizedBox(height: 7),
+            Text('Accepted answer: $correctAnswer',
+                style: DeckTheme.ibmPlexMono(
+                    fontSize: 9.5, color: DeckColors.green)),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCorrectAnswer(AnswerResult r) {
-    final correct = r.correctAnswer;
-    String? correctText;
-
-    if (r.questionType == 'single_choice' && correct.singleChoiceAnswer != null) {
-      final opt = r.options
-          .where((o) => o.id == correct.singleChoiceAnswer)
-          .firstOrNull;
-      correctText = opt?.text ?? '???';
-    } else if (r.questionType == 'multiple_choice' &&
-        correct.multipleChoiceAnswer != null) {
-      correctText = correct.multipleChoiceAnswer!
-          .map((id) => r.options.where((o) => o.id == id).firstOrNull?.text ?? id)
-          .join(' + ');
-    } else if (r.questionType == 'fill_in_blank' && correct.fillInAnswer != null) {
-      correctText = correct.fillInAnswer;
+        ],
+      );
     }
 
-    if (correctText == null) return const SizedBox.shrink();
+    return TextField(
+      controller: _fillInController,
+      style: DeckTheme.literata(fontSize: 14, color: DeckColors.ink),
+      onChanged: (_) => setState(() {}),
+      decoration: InputDecoration(
+        hintText: 'Type your answer...',
+        hintStyle: DeckTheme.literata(
+            fontSize: 14, color: DeckColors.graphiteFaint),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(9),
+          borderSide: const BorderSide(color: DeckColors.rule),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(9),
+          borderSide: const BorderSide(color: DeckColors.rule),
+        ),
+        filled: true,
+        fillColor: DeckColors.paper,
+      ),
+    );
+  }
+
+  Widget _buildFeedback() {
+    if (_result == null) return const SizedBox.shrink();
+    final r = _result!;
+    final isCorrect = r.isCorrect;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding:
+          const EdgeInsets.only(top: 11, left: 13, right: 13, bottom: 11),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.outline, width: 2),
+        color: isCorrect ? DeckColors.greenFaint : DeckColors.redFaint,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(
+            color: isCorrect ? DeckColors.green : DeckColors.red),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          const Text('✅', style: TextStyle(fontSize: 16)),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              'Answer: $correctText',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 70),
+                child: Text(isCorrect ? 'Correct' : 'Not quite',
+                    style: DeckTheme.spaceGrotesk(
+                        fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+              if (r.explanation != null && r.explanation!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.only(right: 32),
+                  child: Text(r.explanation!,
+                      style: DeckTheme.literata(
+                          fontSize: 12, height: 1.4)),
+                ),
+              ],
+            ],
+          ),
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Transform.rotate(
+              angle: -6 * pi / 180,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                      color:
+                          isCorrect ? DeckColors.green : DeckColors.red,
+                      width: 2),
+                ),
+                child: Text(isCorrect ? 'CORRECT' : 'INCORRECT',
+                    style: DeckTheme.ibmPlexMono(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: isCorrect
+                            ? DeckColors.green
+                            : DeckColors.red,
+                        letterSpacing: 0.1)),
               ),
             ),
           ),
@@ -860,66 +605,258 @@ class _QuestionScreenState extends State<QuestionScreen>
     );
   }
 
-  Widget _buildSubmitButton(Question q) {
+  Widget _buildBottomAction(Question q) {
     final canSubmit = q.isSingleChoice && _selectedSingle != null ||
         q.isMultipleChoice && _selectedMultiple.isNotEmpty ||
         q.isFillInBlank && _fillInController.text.trim().isNotEmpty;
 
-    return FilledButton(
-      onPressed: canSubmit && !_submitting ? _submitAnswer : null,
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.secondary,
-        disabledBackgroundColor: AppColors.outline.withValues(alpha: 0.2),
-        shadowColor: AppColors.secondary.withValues(alpha: 0.5),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 11, 16, 14),
+      decoration: const BoxDecoration(
+        color: DeckColors.paper,
+        border: Border(
+            top: BorderSide(color: DeckColors.rule)),
       ),
-      child: _submitting
-          ? const SizedBox(
-              height: 24,
-              width: 24,
-              child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
-            )
-          : const Text('SUBMIT!'),
+      child: _btn(
+        'Lock in answer',
+        canSubmit ? () => _submitAnswer() : null,
+        enabled: canSubmit,
+        loading: _submitting,
+      ),
     );
   }
 
-  Widget _buildNextButton() {
-    if (widget.isReviewMode) {
-      return FilledButton.icon(
-        onPressed: () => Navigator.of(context).pop(),
-        icon: const Text('📚', style: TextStyle(fontSize: 16)),
-        label: const Text('BACK TO REVIEW'),
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          shadowColor: AppColors.primary.withValues(alpha: 0.5),
+  Widget _buildBottomNext() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 11, 16, 14),
+      decoration: const BoxDecoration(
+        color: DeckColors.paper,
+        border: Border(
+            top: BorderSide(color: DeckColors.rule)),
+      ),
+      child: Column(
+        children: [
+          _btn(
+            widget.isReviewMode ? 'BACK TO REVIEW' : 'Next question',
+            () {
+              if (widget.isReviewMode) {
+                Navigator.of(context).pop();
+              } else {
+                _loadQuestion();
+              }
+            },
+          ),
+          if (!widget.isReviewMode) ...[
+            const SizedBox(height: 7),
+            GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Text('Back to categories',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontFamily: 'IBM Plex Mono',
+                    color: DeckColors.graphiteFaint,
+                    decoration: TextDecoration.underline,
+                  )),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompletedScreen() {
+    return Column(
+      children: [
+        Expanded(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(widget.categoryName,
+                      style: DeckTheme.ibmPlexMono(
+                          fontSize: 10,
+                          color: DeckColors.graphite,
+                          letterSpacing: 0.08)),
+                  const SizedBox(height: 4),
+                  Text('$_sessionAnswered/$_sessionTotal',
+                      style: DeckTheme.spaceGrotesk(
+                          fontSize: 42,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${_sessionTotal > 0 ? (_sessionAnswered * 100 ~/ _sessionTotal) : 0}% correct',
+                    style: DeckTheme.ibmPlexMono(
+                        fontSize: 10,
+                        color: DeckColors.graphite,
+                        letterSpacing: 0.08),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildBadgeRow(),
+                ],
+              ),
+            ),
+          ),
         ),
-      );
-    }
-    return FilledButton.icon(
-      onPressed: _loadQuestion,
-      icon: const Text('▶️', style: TextStyle(fontSize: 16)),
-      label: Text(_next?.remainingCount != null && _next!.remainingCount > 0
-          ? 'NEXT QUESTION  (${_next!.remainingCount} left)'
-          : 'NEXT QUESTION'),
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        shadowColor: AppColors.primary.withValues(alpha: 0.5),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 11, 16, 14),
+          decoration: const BoxDecoration(
+            color: DeckColors.paper,
+            border: Border(
+                top: BorderSide(color: DeckColors.rule)),
+          ),
+          child: Column(
+            children: [
+              _btn('Play again', () => _loadQuestion()),
+              const SizedBox(height: 7),
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Text('Back to categories',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontFamily: 'IBM Plex Mono',
+                      color: DeckColors.graphiteFaint,
+                      decoration: TextDecoration.underline,
+                    )),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBadgeRow() {
+    return const Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _Badge(icon: '\u{1F525}', label: 'Streak', isNew: false),
+        SizedBox(width: 12),
+        _Badge(icon: '\u{1F3AF}', label: 'Sharp', isNew: true),
+        SizedBox(width: 12),
+        _Badge(icon: '\u{1F9E0}', label: 'Genius', isNew: false),
+      ],
+    );
+  }
+
+  Widget _btn(String label, VoidCallback? onTap,
+      {bool enabled = true, bool loading = false}) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: (enabled && !loading) ? onTap : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: enabled ? DeckColors.ink : DeckColors.graphiteFaint,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Center(
+            child: loading
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: DeckColors.paper),
+                  )
+                : Text(label,
+                    style: DeckTheme.spaceGrotesk(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: DeckColors.paper)),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _SpeechTrianglePainter extends CustomPainter {
+class _Badge extends StatelessWidget {
+  final String icon;
+  final String label;
+  final bool isNew;
+
+  const _Badge(
+      {required this.icon, required this.label, required this.isNew});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 56,
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isNew ? DeckColors.yellowBg : DeckColors.paperDark,
+              border: Border.all(
+                  color: isNew ? DeckColors.yellow : DeckColors.rule,
+                  width: 2),
+              boxShadow: isNew
+                  ? [
+                      BoxShadow(
+                          color: DeckColors.yellowBg,
+                          blurRadius: 0,
+                          offset: const Offset(0, 0),
+                          spreadRadius: 3),
+                    ]
+                  : null,
+            ),
+            child: Center(
+              child: Text(icon, style: const TextStyle(fontSize: 18)),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label,
+              textAlign: TextAlign.center,
+              style: DeckTheme.ibmPlexMono(
+                  fontSize: 8.5, color: DeckColors.graphite)),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _backButton(BuildContext context) {
+  return GestureDetector(
+    onTap: () => Navigator.of(context).pop(),
+    child: Container(
+      width: 28,
+      height: 28,
+      margin: const EdgeInsets.only(left: 16),
+      decoration: BoxDecoration(
+        color: DeckColors.paperDark,
+        shape: BoxShape.circle,
+        border: Border.all(color: DeckColors.rule),
+      ),
+      child: const Center(
+        child: Text('\u2190', style: TextStyle(fontSize: 13, color: DeckColors.ink)),
+      ),
+    ),
+  );
+}
+
+class _CheckmarkPainter extends CustomPainter {
   final Color color;
-  _SpeechTrianglePainter({required this.color});
+  _CheckmarkPainter(this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.6
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+
     final path = Path()
-      ..moveTo(size.width / 2 - 15, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..lineTo(size.width / 2 + 15, 0)
-      ..close();
+      ..moveTo(size.width * 0.22, size.height * 0.52)
+      ..lineTo(size.width * 0.42, size.height * 0.69)
+      ..lineTo(size.width * 0.78, size.height * 0.31);
     canvas.drawPath(path, paint);
   }
 

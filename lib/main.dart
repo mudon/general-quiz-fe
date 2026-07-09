@@ -43,9 +43,9 @@ class QuizApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'QuizMaster',
+      title: 'Quiz Deck',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: DeckTheme.light,
       initialRoute: isAutoLoggedIn ? '/home' : '/login',
       routes: {
         '/login': (_) => LoginScreen(authService: authService),

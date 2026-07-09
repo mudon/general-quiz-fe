@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_text_field.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   final AuthService authService;
@@ -17,7 +16,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _tokenCtrl = TextEditingController();
   final _newPasswordCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
   bool _loading = false;
   bool _resetStage = false;
   bool _done = false;
@@ -35,14 +33,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           _resetStage = true;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
+          SnackBar(
+              content: Text(message,
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', ''),
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
         );
       }
     }
@@ -51,11 +55,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _doReset() async {
     if (_tokenCtrl.text.trim().isEmpty || _newPasswordCtrl.text.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid token and new password (min 8 chars).')),
+        SnackBar(
+            content: Text('Enter a valid token and new password (min 8 chars).',
+                style: DeckTheme.ibmPlexMono(
+                    color: DeckColors.paper, fontSize: 10))),
       );
       return;
     }
-
     setState(() => _loading = true);
     try {
       final message = await widget.authService.resetPassword(
@@ -68,14 +74,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           _done = true;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
+          SnackBar(
+              content: Text(message,
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', ''),
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
         );
       }
     }
@@ -92,7 +104,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: DeckColors.paper,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -103,16 +115,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _buildHeader(),
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 32),
                   if (_done)
                     _buildDoneCard()
-                  else if (_resetStage)
-                    _buildResetCard()
                   else
-                    _buildEmailCard(),
-                  const SizedBox(height: 24),
-                  if (!_done)
-                    _buildBackButton(),
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: DeckColors.paper,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: _resetStage
+                          ? _buildResetCard()
+                          : _buildEmailCard(),
+                    ),
+                  const SizedBox(height: 20),
+                  if (!_done) _buildBackButton(),
                 ],
               ),
             ),
@@ -123,244 +141,125 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _buildHeader() {
+    final emoji = _done
+        ? '\u2705'
+        : _resetStage
+            ? '\u{1F510}'
+            : '\u{1F511}';
+    final title = _done
+        ? 'PASSWORD RESET!'
+        : _resetStage
+            ? 'SET NEW PASSWORD'
+            : 'FORGOT PASSWORD?';
+    final sub = _done
+        ? 'Your password has been changed.\nYou can now log in.'
+        : _resetStage
+            ? 'Enter the token sent to your email\nand choose a new password.'
+            : 'No worries! Enter your email\nand we\'ll send a reset token.';
+
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(3),
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: _done ? DeckColors.greenFaint : DeckColors.paperDark,
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.outline, width: 3),
-            boxShadow: [
-              BoxShadow(
-                color: _done
-                    ? AppColors.success.withValues(alpha: 0.4)
-                    : AppColors.secondary.withValues(alpha: 0.4),
-                blurRadius: 0,
-                offset: const Offset(5, 5),
-              ),
-            ],
+            border: Border.all(
+                color: _done ? DeckColors.green : DeckColors.rule,
+                width: 2),
           ),
-          child: Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              color: _done ? AppColors.successBg : AppColors.secondaryLight,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                _done ? '✅' : _resetStage ? '🔐' : '🔑',
-                style: const TextStyle(fontSize: 40),
-              ),
-            ),
+          child: Center(
+            child: Text(emoji, style: const TextStyle(fontSize: 36)),
           ),
         ),
-        const SizedBox(height: 20),
-        Text(
-          _done
-              ? 'PASSWORD RESET!'
-              : _resetStage
-                  ? 'SET NEW PASSWORD'
-                  : 'FORGOT PASSWORD?',
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: AppColors.textPrimary,
-            letterSpacing: 2,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          _done
-              ? 'Your password has been changed.\nYou can now log in.'
-              : _resetStage
-                  ? 'Enter the token sent to your email\nand choose a new password.'
-                  : 'No worries! Enter your email\nand we\'ll send a reset token.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary.withValues(alpha: 0.8),
-          ),
-        ),
+        const SizedBox(height: 16),
+        Text(title,
+            style: DeckTheme.spaceGrotesk(
+                fontSize: 18, color: DeckColors.ink)),
+        const SizedBox(height: 6),
+        Text(sub,
+            textAlign: TextAlign.center,
+            style: DeckTheme.literata(
+                fontSize: 13,
+                color: DeckColors.graphite,
+                height: 1.4)),
       ],
     );
   }
 
   Widget _buildEmailCard() {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.outline, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 0,
-            offset: const Offset(5, 5),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            AppTextField(
-              label: 'EMAIL',
-              hint: 'you@example.com',
-              keyboardType: TextInputType.emailAddress,
-              controller: _emailCtrl,
-              validator: (v) =>
-                  v == null || v.isEmpty ? 'Email required!' : null,
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _loading ? null : _sendReset,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                shadowColor: AppColors.secondary.withValues(alpha: 0.5),
-              ),
-              child: _loading
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 3, color: Colors.white),
-                    )
-                  : const Text('SEND TOKEN 📩'),
-            ),
-          ],
-        ),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildTextField('EMAIL', 'you@example.com', _emailCtrl,
+            TextInputType.emailAddress,
+            validator: (v) =>
+                v == null || v.isEmpty ? 'Email required!' : null),
+        const SizedBox(height: 20),
+        _btnPrimary('SEND TOKEN', _loading ? null : _sendReset,
+            loading: _loading),
+      ],
     );
   }
 
   Widget _buildResetCard() {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.outline, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 0,
-            offset: const Offset(5, 5),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _tokenCtrl,
+          style: DeckTheme.literata(fontSize: 14, color: DeckColors.ink),
+          decoration: InputDecoration(
+            labelText: 'RESET TOKEN',
+            hintText: 'Paste the token from your email',
+            labelStyle: DeckTheme.ibmPlexMono(
+                fontSize: 9,
+                color: DeckColors.graphite,
+                letterSpacing: 0.1),
+            hintStyle: DeckTheme.literata(
+                fontSize: 14, color: DeckColors.graphiteFaint),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9)),
+            filled: true,
+            fillColor: DeckColors.paper,
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            TextField(
-              controller: _tokenCtrl,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                letterSpacing: 1.5,
-              ),
-              decoration: InputDecoration(
-                labelText: 'RESET TOKEN',
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
-                hintText: 'Paste the token from your email',
-                hintStyle: TextStyle(
-                  color: AppColors.outline.withValues(alpha: 0.4),
-                  fontWeight: FontWeight.w600,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.outline, width: 2.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 3),
-                ),
-                filled: true,
-                fillColor: AppColors.primary.withValues(alpha: 0.03),
-              ),
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              label: 'NEW PASSWORD',
-              isPassword: true,
-              controller: _newPasswordCtrl,
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Password required!';
-                if (v.length < 8) return 'Min 8 characters!';
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _loading ? null : _doReset,
-              child: _loading
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 3, color: Colors.white),
-                    )
-                  : const Text('RESET PASSWORD 🔒'),
-            ),
-          ],
         ),
-      ),
+        const SizedBox(height: 14),
+        _buildTextField(
+            'NEW PASSWORD', '', _newPasswordCtrl, null,
+            obscure: true,
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Password required!';
+              if (v.length < 8) return 'Min 8 characters!';
+              return null;
+            }),
+        const SizedBox(height: 20),
+        _btnPrimary('RESET PASSWORD', _loading ? null : _doReset,
+            loading: _loading),
+      ],
     );
   }
 
   Widget _buildDoneCard() {
     return Container(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.success,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outline, width: 3),
+        color: DeckColors.greenFaint,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: DeckColors.green),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const Text('🎉', style: TextStyle(fontSize: 44)),
-            const SizedBox(height: 8),
-            const Text(
-              'ALL DONE!',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Your email is now verified.\nLog in with your new password.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.85),
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: () => Navigator.pop(context),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.success,
-                shadowColor: Colors.white.withValues(alpha: 0.3),
-              ),
-              child: const Text('BACK TO LOGIN',
-                  style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-            ),
-          ],
-        ),
+      child: Column(
+        children: [
+          const Text('\u{1F389}', style: TextStyle(fontSize: 36)),
+          const SizedBox(height: 8),
+          Text('ALL DONE!',
+              style: DeckTheme.spaceGrotesk(
+                  fontSize: 16, color: DeckColors.green)),
+          const SizedBox(height: 16),
+          _btnPrimary(
+              'BACK TO LOGIN', () => Navigator.pop(context)),
+        ],
       ),
     );
   }
@@ -374,27 +273,64 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Navigator.pop(context);
         }
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outline, width: 2.5),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('👈 '),
-            Text(
-              _resetStage ? 'EDIT EMAIL' : 'BACK TO LOGIN',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                color: AppColors.primary,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ],
+      child:       Text(
+        _resetStage ? 'EDIT EMAIL' : 'BACK TO LOGIN',
+        style: DeckTheme.spaceGrotesk(
+            fontSize: 13.5, color: DeckColors.ink),
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, String hint,
+      TextEditingController ctrl, TextInputType? keyboardType,
+      {bool obscure = false, String? Function(String?)? validator}) {
+    return TextFormField(
+      controller: ctrl,
+      obscureText: obscure,
+      keyboardType: keyboardType,
+      style: DeckTheme.literata(fontSize: 14, color: DeckColors.ink),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint.isNotEmpty ? hint : null,
+        labelStyle: DeckTheme.ibmPlexMono(
+            fontSize: 9, color: DeckColors.graphite, letterSpacing: 0.1),
+        hintStyle: DeckTheme.literata(
+            fontSize: 14, color: DeckColors.graphiteFaint),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(9)),
+        filled: true,
+        fillColor: DeckColors.paper,
+      ),
+      validator: validator,
+    );
+  }
+
+  Widget _btnPrimary(String label, VoidCallback? onTap,
+      {bool loading = false}) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: onTap != null ? DeckColors.ink : DeckColors.graphiteFaint,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Center(
+            child: loading
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: DeckColors.paper),
+                  )
+                : Text(label,
+                    style: DeckTheme.spaceGrotesk(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: DeckColors.paper)),
+          ),
         ),
       ),
     );

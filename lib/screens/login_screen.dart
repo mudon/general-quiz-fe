@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_text_field.dart';
-import '../widgets/auth_header.dart';
 
 class LoginScreen extends StatefulWidget {
   final AuthService authService;
@@ -42,7 +40,10 @@ class _LoginScreenState extends State<LoginScreen> {
         } else {
           setState(() => _loading = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg)),
+            SnackBar(
+                content: Text(msg,
+                    style: DeckTheme.ibmPlexMono(
+                        color: DeckColors.paper, fontSize: 10))),
           );
         }
       }
@@ -57,13 +58,19 @@ class _LoginScreenState extends State<LoginScreen> {
       final data = await widget.authService.resendVerification(email: email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Verification sent')),
+          SnackBar(
+              content: Text(data['message'] ?? 'Verification sent',
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', ''),
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
         );
       }
     } finally {
@@ -82,7 +89,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() => _verifying = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', ''),
+                  style: DeckTheme.ibmPlexMono(
+                      color: DeckColors.paper, fontSize: 10))),
         );
       }
     }
@@ -106,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: DeckColors.paper,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -116,86 +126,28 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const AuthHeader(subtitle: 'Test your brainpower!'),
-                  const SizedBox(height: 40),
+                  _buildHeader(),
+                  const SizedBox(height: 36),
                   Container(
-                    padding: const EdgeInsets.all(3),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.outline, width: 3),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 0,
-                          offset: const Offset(5, 5),
-                        ),
-                      ],
+                      color: DeckColors.paper,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: _verificationMode
-                          ? _buildVerificationForm()
-                          : _buildLoginForm(),
-                    ),
+                    child: _verificationMode
+                        ? _buildVerificationForm()
+                        : _buildLoginForm(),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
                   if (!_verificationMode) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.outline, width: 2.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.secondary.withValues(alpha: 0.2),
-                            blurRadius: 0,
-                            offset: const Offset(3, 3),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('New here? ', style: TextStyle(fontWeight: FontWeight.w600)),
-                          Text('REGISTER 👋',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.primary)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
                     GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/register'),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.outline, width: 2.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              blurRadius: 0,
-                              offset: const Offset(3, 3),
-                            ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'CREATE ACCOUNT ✨',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.primary,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                        ),
-                      ),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/register'),
+                    child: Text('CREATE ACCOUNT \u2728',
+                        style: DeckTheme.spaceGrotesk(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: DeckColors.ink)),
                     ),
                   ],
                 ],
@@ -207,49 +159,60 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLoginForm() {
+  Widget _buildHeader() {
     return Column(
       children: [
-        AppTextField(
-          label: 'EMAIL',
-          hint: 'you@example.com',
-          keyboardType: TextInputType.emailAddress,
-          controller: _emailCtrl,
-          validator: (v) =>
-              v == null || v.isEmpty ? 'Email required!' : null,
-        ),
-        const SizedBox(height: 16),
-        AppTextField(
-          label: 'PASSWORD',
-          isPassword: true,
-          controller: _passwordCtrl,
-          validator: (v) =>
-              v == null || v.isEmpty ? 'Password required!' : null,
-        ),
-        const SizedBox(height: 4),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () =>
-                Navigator.pushNamed(context, '/forgot-password'),
-            child: const Text('Forgot password? 🤔',
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.secondary)),
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: DeckColors.paperDark,
+            shape: BoxShape.circle,
+            border: Border.all(color: DeckColors.rule, width: 2),
+          ),
+          child: const Center(
+            child: Text('\u{1F9E0}', style: TextStyle(fontSize: 36)),
           ),
         ),
-        const SizedBox(height: 8),
-        FilledButton(
-          onPressed: _loading ? null : _login,
-          child: _loading
-              ? const SizedBox(
-                  height: 22,
-                  width: 22,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 3, color: Colors.white),
-                )
-              : const Text('LOGIN 🚀'),
+        const SizedBox(height: 16),
+        Text('Quiz Deck',
+            style: DeckTheme.spaceGrotesk(
+                fontSize: 24, color: DeckColors.ink)),
+        const SizedBox(height: 4),
+        Text('Test your brainpower!',
+            style: DeckTheme.ibmPlexMono(
+                fontSize: 10, color: DeckColors.graphite)),
+      ],
+    );
+  }
+
+  Widget _buildLoginForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildTextField('EMAIL', 'you@example.com', _emailCtrl,
+            TextInputType.emailAddress,
+            validator: (v) =>
+                v == null || v.isEmpty ? 'Email required!' : null),
+        const SizedBox(height: 14),
+        _buildTextField('PASSWORD', '', _passwordCtrl, null,
+            obscure: true,
+            validator: (v) =>
+                v == null || v.isEmpty ? 'Password required!' : null),
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            onTap: () =>
+                Navigator.pushNamed(context, '/forgot-password'),
+            child: Text('Forgot password?',
+                style: DeckTheme.ibmPlexMono(
+                    fontSize: 9,
+                    color: DeckColors.blue)),
+          ),
         ),
+        const SizedBox(height: 16),
+        _btnPrimary('LOGIN', _loading ? null : _login, loading: _loading),
       ],
     );
   }
@@ -258,99 +221,140 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('📧', style: TextStyle(fontSize: 32)),
-            SizedBox(width: 8),
-            Text(
-              'VERIFY EMAIL',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: AppColors.textPrimary,
-                letterSpacing: 2,
-              ),
-            ),
+            const Text('\u{1F4E7}', style: TextStyle(fontSize: 24)),
+            const SizedBox(width: 8),
+            Text('VERIFY EMAIL',
+                style: DeckTheme.spaceGrotesk(fontSize: 16)),
           ],
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Your email is not verified. A message with a verification code has been sent to your inbox.',
+        Text(
+          'Your email is not verified. A verification code has been sent to your inbox.',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
-            height: 1.4,
-          ),
+          style: DeckTheme.literata(
+              fontSize: 13, color: DeckColors.graphite, height: 1.4),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _verifyTokenCtrl,
           textInputAction: TextInputAction.done,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-            letterSpacing: 1.5,
-          ),
+          style: DeckTheme.literata(fontSize: 14, color: DeckColors.ink),
           decoration: InputDecoration(
             labelText: 'VERIFICATION CODE',
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.w700,
-              color: AppColors.textSecondary,
-            ),
             hintText: 'Paste your code here',
-            hintStyle: TextStyle(
-              color: AppColors.outline.withValues(alpha: 0.4),
-              fontWeight: FontWeight.w600,
-            ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.outline, width: 2.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.primary, width: 3),
-            ),
+                borderRadius: BorderRadius.circular(9)),
             filled: true,
-            fillColor: AppColors.primary.withValues(alpha: 0.03),
+            fillColor: DeckColors.paper,
           ),
         ),
         const SizedBox(height: 14),
-        FilledButton(
-          onPressed: _verifying ? null : _verifyAndLogin,
-          child: _verifying
-              ? const SizedBox(
-                  height: 22,
-                  width: 22,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 3, color: Colors.white),
-                )
-              : const Text('VERIFY & LOGIN',
-                  style: TextStyle(letterSpacing: 1.5)),
-        ),
-        const SizedBox(height: 10),
+        _btnPrimary('VERIFY & LOGIN',
+            _verifying ? null : _verifyAndLogin,
+            loading: _verifying),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
-                onPressed: _verifying ? null : _resendVerification,
-                child: const Text('RESEND CODE',
-                    style: TextStyle(fontSize: 13, letterSpacing: 1)),
-              ),
+              child: _btnOutline(
+                  'RESEND CODE',
+                  _verifying ? null : _resendVerification),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
-              child: TextButton(
-                onPressed: _verifying ? null : _cancelVerification,
-                child: const Text('BACK',
-                    style: TextStyle(color: AppColors.textSecondary)),
+              child: GestureDetector(
+                onTap: _cancelVerification,
+                child: Center(
+                  child: Text('BACK',
+                      style: DeckTheme.ibmPlexMono(
+                          fontSize: 10, color: DeckColors.graphite)),
+                ),
               ),
             ),
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildTextField(String label, String hint,
+      TextEditingController ctrl, TextInputType? keyboardType,
+      {bool obscure = false, String? Function(String?)? validator}) {
+    return TextFormField(
+      controller: ctrl,
+      obscureText: obscure,
+      keyboardType: keyboardType,
+      style: DeckTheme.literata(fontSize: 14, color: DeckColors.ink),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint.isNotEmpty ? hint : null,
+        labelStyle: DeckTheme.ibmPlexMono(
+            fontSize: 9, color: DeckColors.graphite, letterSpacing: 0.1),
+        hintStyle: DeckTheme.literata(
+            fontSize: 14, color: DeckColors.graphiteFaint),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(9)),
+        filled: true,
+        fillColor: DeckColors.paper,
+      ),
+      validator: validator,
+    );
+  }
+
+  Widget _btnPrimary(String label, VoidCallback? onTap,
+      {bool loading = false}) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: onTap != null ? DeckColors.ink : DeckColors.graphiteFaint,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Center(
+            child: loading
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: DeckColors.paper),
+                  )
+                : Text(label,
+                    style: DeckTheme.spaceGrotesk(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: DeckColors.paper)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _btnOutline(String label, VoidCallback? onTap) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(
+                color: onTap != null ? DeckColors.ink : DeckColors.graphiteFaint,
+                width: 1.5),
+          ),
+          child: Center(
+            child: Text(label,
+                style: DeckTheme.spaceGrotesk(
+                    fontSize: 13.5, color: DeckColors.ink)),
+          ),
+        ),
+      ),
     );
   }
 }

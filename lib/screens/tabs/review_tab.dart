@@ -16,22 +16,209 @@ class ReviewTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ReviewCubit, ReviewState>(
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: AppColors.surface,
-          appBar: AppBar(
-            title: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('📚', style: TextStyle(fontSize: 24)),
-                SizedBox(width: 8),
-                Text('REVIEW DUE',
-                    style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
-              ],
+        final body = _buildBody(context, state);
+        return Column(
+          children: [
+            Container(
+              padding:
+                  const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              decoration: const BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(color: DeckColors.ink, width: 2)),
+                color: DeckColors.paper,
+              ),
+              child: Row(
+                children: [
+                  Text('Review',
+                      style: DeckTheme.spaceGrotesk(fontSize: 17)),
+                  const Spacer(),
+                  if (state.items != null && state.items!.isNotEmpty)
+                    _buildPill(
+                        '${state.items!.length} due'),
+                ],
+              ),
             ),
-          ),
-          body: _buildBody(context, state),
+            Expanded(child: body),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildPill(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: DeckColors.graphiteFaint),
+      ),
+      child: Text(text,
+          style: DeckTheme.ibmPlexMono(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              color: DeckColors.graphite)),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, ReviewState state) {
+    if (state.loading) {
+      return const Center(
+        child: Text('Loading review...',
+            style: TextStyle(fontSize: 14, color: DeckColors.graphite)),
+      );
+    }
+
+    if (state.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(state.error!,
+                  textAlign: TextAlign.center,
+                  style: DeckTheme.ibmPlexMono(color: DeckColors.graphite)),
+              const SizedBox(height: 16),
+              _btnPrimary('TRY AGAIN',
+                  () => context.read<ReviewCubit>().load()),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (state.items == null || state.items!.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: DeckColors.greenFaint,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: DeckColors.green, width: 2),
+                ),
+                child: const Center(
+                  child: Text('\u2705', style: TextStyle(fontSize: 36)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('ALL CAUGHT UP!',
+                  style: DeckTheme.spaceGrotesk(fontSize: 16)),
+              const SizedBox(height: 4),
+              Text(
+                'No review due right now.\nAnswer more questions to build your queue.',
+                textAlign: TextAlign.center,
+                style: DeckTheme.literata(
+                    fontSize: 13, color: DeckColors.graphite, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              _btnOutline('REFRESH',
+                  () => context.read<ReviewCubit>().load()),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => context.read<ReviewCubit>().load(),
+      color: DeckColors.blue,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: state.items!.length,
+        itemBuilder: (context, index) =>
+            _buildCard(context, state.items![index]),
+      ),
+    );
+  }
+
+  Widget _buildCard(BuildContext context, DueReviewItem item) {
+    final levelColor = _levelColor(item.repetitions);
+
+    return GestureDetector(
+      onTap: () => _openQuestion(context, item),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: DeckColors.paperDark,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: DeckColors.rule),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: levelColor.withAlpha(20),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                    color: levelColor.withAlpha(80), width: 1.5),
+              ),
+              child: Center(
+                child: Text(_levelEmoji(item.repetitions),
+                    style: const TextStyle(fontSize: 20)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.questionText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: DeckTheme.spaceGrotesk(fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _tag(
+                          item.questionType == 'single_choice'
+                              ? 'SINGLE'
+                              : item.questionType == 'multiple_choice'
+                                  ? 'MULTI'
+                                  : 'FILL',
+                          levelColor),
+                      const SizedBox(width: 6),
+                      _tag('${item.intervalDays}d',
+                          DeckColors.graphite),
+                      const SizedBox(width: 6),
+                      _tag('${item.repetitions}x',
+                          DeckColors.graphite),
+                      if (item.lapses > 0) ...[
+                        const SizedBox(width: 6),
+                        _tag('${item.lapses}', DeckColors.red),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Text('\u203A',
+                style: TextStyle(
+                    fontSize: 14, color: DeckColors.graphiteFaint)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(label,
+          style: DeckTheme.ibmPlexMono(
+              fontSize: 8.5, fontWeight: FontWeight.w600, color: color)),
     );
   }
 
@@ -59,225 +246,58 @@ class ReviewTab extends StatelessWidget {
     );
   }
 
-  Widget _buildBody(BuildContext context, ReviewState state) {
-    if (state.loading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('📚', style: TextStyle(fontSize: 56)),
-            SizedBox(height: 12),
-            Text('Loading review...',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textSecondary)),
-          ],
-        ),
-      );
-    }
-
-    if (state.error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('😵', style: TextStyle(fontSize: 56)),
-              const SizedBox(height: 12),
-              Text(state.error!, textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => context.read<ReviewCubit>().load(),
-                child: const Text('TRY AGAIN'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (state.items == null || state.items!.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.outline, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.success.withValues(alpha: 0.3),
-                      blurRadius: 0,
-                      offset: const Offset(4, 4),
-                    ),
-                  ],
-                ),
-                child: Container(
-                  width: 90,
-                  height: 90,
-                  decoration: const BoxDecoration(
-                    color: AppColors.successBg,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Text('🎉', style: TextStyle(fontSize: 44)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text('ALL CAUGHT UP!',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.textPrimary,
-                      letterSpacing: 1.5)),
-              const SizedBox(height: 8),
-              const Text('No review due right now.\nAnswer more questions to build your study queue!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14)),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () => context.read<ReviewCubit>().load(),
-                child: const Text('REFRESH 🔄'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () => context.read<ReviewCubit>().load(),
-      color: AppColors.primary,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(14),
-        itemCount: state.items!.length,
-        itemBuilder: (context, index) => _buildCard(context, state.items![index]),
-      ),
-    );
-  }
-
-  Widget _buildCard(BuildContext context, DueReviewItem item) {
-    final color = _levelColor(item.repetitions);
-
-    return GestureDetector(
-      onTap: () => _openQuestion(context, item),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.outline, width: 3),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.3),
-              blurRadius: 0,
-              offset: const Offset(4, 4),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
-                ),
-                child: Center(
-                  child: Text(_levelEmoji(item.repetitions),
-                      style: const TextStyle(fontSize: 24)),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.questionText,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                            height: 1.3)),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        _buildTag(
-                            item.questionType == 'single_choice' ? '🎯' : item.questionType == 'multiple_choice' ? '✅' : '✏️',
-                            item.questionType == 'single_choice' ? 'SINGLE' : item.questionType == 'multiple_choice' ? 'MULTI' : 'FILL',
-                            color),
-                        const SizedBox(width: 8),
-                        _buildTag('📅', '${item.intervalDays}d', AppColors.textSecondary),
-                        const SizedBox(width: 8),
-                        _buildTag('🔄', '${item.repetitions}x', AppColors.textSecondary),
-                        if (item.lapses > 0) ...[
-                          const SizedBox(width: 8),
-                          _buildTag('❌', '${item.lapses}', AppColors.error),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   String _levelEmoji(int repetitions) {
-    if (repetitions >= 5) return '🧠';
-    if (repetitions >= 3) return '💪';
-    if (repetitions >= 1) return '📖';
-    return '🆕';
+    if (repetitions >= 5) return '\u{1F9E0}';
+    if (repetitions >= 3) return '\u{1F4AA}';
+    if (repetitions >= 1) return '\u{1F4D6}';
+    return '\u{1F195}';
   }
 
   Color _levelColor(int repetitions) {
-    if (repetitions >= 5) return AppColors.success;
-    if (repetitions >= 3) return AppColors.primary;
-    if (repetitions >= 1) return AppColors.sky;
-    return AppColors.secondary;
+    if (repetitions >= 5) return DeckColors.green;
+    if (repetitions >= 3) return DeckColors.blue;
+    if (repetitions >= 1) return DeckColors.yellow;
+    return DeckColors.red;
   }
 
-  Widget _buildTag(String emoji, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+  Widget _btnPrimary(String label, VoidCallback onTap) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: DeckColors.ink,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Center(
+            child: Text(label,
+                style: DeckTheme.spaceGrotesk(
+                    fontSize: 13.5, color: DeckColors.paper)),
+          ),
+        ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 11)),
-          const SizedBox(width: 3),
-          Text(label,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
-        ],
+    );
+  }
+
+  Widget _btnOutline(String label, VoidCallback onTap) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: DeckColors.ink, width: 1.5),
+          ),
+          child: Center(
+            child: Text(label,
+                style: DeckTheme.spaceGrotesk(
+                    fontSize: 13.5, color: DeckColors.ink)),
+          ),
+        ),
       ),
     );
   }

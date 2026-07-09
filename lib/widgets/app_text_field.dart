@@ -40,40 +40,32 @@ class _AppTextFieldState extends State<AppTextField> {
       controller: widget.controller,
       obscureText: _obscured,
       keyboardType: widget.keyboardType,
-      style: const TextStyle(
-        fontWeight: FontWeight.w700,
-        fontSize: 15,
-      ),
+      style: DeckTheme.literata(fontSize: 14, color: DeckColors.ink),
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hint,
-        labelStyle: const TextStyle(
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.5,
-          fontSize: 12,
-        ),
+        labelStyle: DeckTheme.ibmPlexMono(
+            fontSize: 9, color: DeckColors.graphite, letterSpacing: 0.1),
+        hintStyle: DeckTheme.literata(
+            fontSize: 14, color: DeckColors.graphiteFaint),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.outline, width: 2.5),
-        ),
+            borderRadius: BorderRadius.circular(9),
+            borderSide: const BorderSide(color: DeckColors.rule)),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.4), width: 2),
-        ),
+            borderRadius: BorderRadius.circular(9),
+            borderSide: const BorderSide(color: DeckColors.rule)),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.primary, width: 3),
-        ),
+            borderRadius: BorderRadius.circular(9),
+            borderSide: const BorderSide(color: DeckColors.blue, width: 2)),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: DeckColors.paper,
         suffixIcon: widget.isPassword
             ? IconButton(
                 icon: Text(
-                  _obscured ? '👁️' : '🙈',
+                  _obscured ? '\u{1F441}\uFE0F' : '\u{1F648}',
                   style: const TextStyle(fontSize: 16),
                 ),
-                onPressed: () =>
-                    setState(() => _obscured = !_obscured),
+                onPressed: () => setState(() => _obscured = !_obscured),
               )
             : null,
       ),

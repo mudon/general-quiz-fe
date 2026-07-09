@@ -43,7 +43,7 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
 
   void _start() {
     _pieces.clear();
-    final colors = AppColors.confettiColors;
+    final colors = DeckColors.confettiColors;
     for (int i = 0; i < 50; i++) {
       _pieces.add(_ConfettiPiece(
         color: colors[_rng.nextInt(colors.length)],

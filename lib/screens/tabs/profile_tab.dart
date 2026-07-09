@@ -8,10 +8,26 @@ import '../../theme/app_theme.dart';
 import '../subscription_screen.dart';
 
 const _avatarEmojis = [
-  '🧑‍🎓', '🧑‍💻', '🧑‍🔬', '🧑‍🎨', '🧑‍🚀', '🧑‍🏫',
-  '🧑‍⚕️', '🧑‍🎵', '🧑‍🏋️', '🧑‍🍳', '🦸', '🦹',
-  '🐱', '🐶', '🦊', '🐼', '🐨', '🦄',
-  '🌟', '🔥', '💎', '🎯', '🎮', '⚡',
+  '\u{1F9D1}\u200D\u{1F393}',
+  '\u{1F9D1}\u200D\u{1F4BB}',
+  '\u{1F9D1}\u200D\u{1F52C}',
+  '\u{1F9D1}\u200D\u{1F3A8}',
+  '\u{1F9D1}\u200D\u{1F680}',
+  '\u{1F9D1}\u200D\u{1F3EB}',
+  '\u{1F9D9}',
+  '\u{1F9B8}',
+  '\u{1F431}',
+  '\u{1F436}',
+  '\u{1F98A}',
+  '\u{1F43C}',
+  '\u{1F989}',
+  '\u{1F984}',
+  '\u{1F31F}',
+  '\u{1F525}',
+  '\u{1F48E}',
+  '\u{1F3AF}',
+  '\u{1F3AE}',
+  '\u26A1',
 ];
 
 class ProfileTab extends StatefulWidget {
@@ -35,28 +51,46 @@ class _ProfileTabState extends State<ProfileTab> {
   Widget build(BuildContext context) {
     return BlocBuilder<ProfileCubit, ProfileState>(
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: AppColors.surface,
-          appBar: AppBar(
-            title: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('😎', style: TextStyle(fontSize: 24)),
-                SizedBox(width: 8),
-                Text('MY PROFILE',
-                    style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
-              ],
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              decoration: const BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(color: DeckColors.ink, width: 2)),
+                color: DeckColors.paper,
+              ),
+              child: Row(
+                children: [
+                  Text('Profile',
+                      style: DeckTheme.spaceGrotesk(fontSize: 17)),
+                  const Spacer(),
+                  if (!state.editing && state.user != null)
+                    GestureDetector(
+                      onTap: () =>
+                          context.read<ProfileCubit>().enterEdit(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: DeckColors.graphiteFaint),
+                        ),
+                        child: Text('Edit',
+                            style: DeckTheme.ibmPlexMono(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                                color: DeckColors.graphite)),
+                      ),
+                    ),
+                ],
+              ),
             ),
-            actions: [
-              if (!state.editing && state.user != null)
-                IconButton(
-                  icon: const Text('✏️', style: TextStyle(fontSize: 20)),
-                  onPressed: () => context.read<ProfileCubit>().enterEdit(),
-                  tooltip: 'Edit profile',
-                ),
-            ],
-          ),
-          body: _buildBody(context, state),
+            Expanded(
+              child: _buildBody(context, state),
+            ),
+          ],
         );
       },
     );
@@ -65,18 +99,8 @@ class _ProfileTabState extends State<ProfileTab> {
   Widget _buildBody(BuildContext context, ProfileState state) {
     if (state.loading) {
       return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('😎', style: TextStyle(fontSize: 56)),
-            SizedBox(height: 12),
-            Text('Loading profile...',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textSecondary)),
-          ],
-        ),
+        child: Text('Loading profile...',
+            style: TextStyle(fontSize: 14, color: DeckColors.graphite)),
       );
     }
 
@@ -87,17 +111,12 @@ class _ProfileTabState extends State<ProfileTab> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('😵', style: TextStyle(fontSize: 56)),
-              const SizedBox(height: 12),
-              Text(state.error!, textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w700)),
+              Text(state.error!,
+                  textAlign: TextAlign.center,
+                  style: DeckTheme.ibmPlexMono(color: DeckColors.graphite)),
               const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => context.read<ProfileCubit>().load(),
-                child: const Text('TRY AGAIN'),
-              ),
+              _btnPrimary('TRY AGAIN',
+                  () => context.read<ProfileCubit>().load()),
             ],
           ),
         ),
@@ -105,12 +124,10 @@ class _ProfileTabState extends State<ProfileTab> {
     }
 
     if (state.user == null) {
-      return const Center(
-        child: Text('😴 Could not load profile.',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textSecondary)),
+      return Center(
+        child: Text('Could not load profile.',
+            style: DeckTheme.spaceGrotesk(
+                fontSize: 14, color: DeckColors.graphite)),
       );
     }
 
@@ -118,25 +135,23 @@ class _ProfileTabState extends State<ProfileTab> {
 
     return RefreshIndicator(
       onRefresh: () => context.read<ProfileCubit>().load(),
-      color: AppColors.primary,
+      color: DeckColors.blue,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             _buildAvatarSection(context, state, u),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             if (state.editing) _buildEditForm(context, state, u),
-            _buildInfoCard(u),
-            const SizedBox(height: 20),
             _buildTierCard(context, u),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _buildBadgesSection(context, u),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _buildChangePasswordSection(context, state),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             _buildChangeEmailSection(context, state),
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
             _buildLogoutButton(context),
             const SizedBox(height: 32),
           ],
@@ -145,300 +160,186 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  Widget _buildAvatarSection(BuildContext context, ProfileState state, User u) {
-    final avatarEmoji = u.avatarValue;
+  Widget _buildAvatarSection(
+      BuildContext context, ProfileState state, User u) {
+    final avatarEmoji = u.avatarValue ?? '\u{1F989}';
 
     return Column(
       children: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            GestureDetector(
-              onTap: state.editing ? () => _showAvatarPicker(context) : null,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(
-                    color: state.editing ? AppColors.secondary : AppColors.outline,
-                    width: 3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (state.editing ? AppColors.secondary : AppColors.primary).withValues(alpha: 0.4),
-                      blurRadius: 0,
-                      offset: const Offset(6, 6),
-                    ),
-                  ],
-                ),
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: Center(
-                    child: state.editing
-                        ? Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(avatarEmoji ?? u.firstName[0].toUpperCase() + u.lastName[0].toUpperCase(),
-                                  style: TextStyle(fontSize: avatarEmoji != null ? 40 : 38, fontWeight: FontWeight.w900, color: AppColors.primary)),
-                              const SizedBox(height: 2),
-                              const Text('TAP TO CHANGE',
-                                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: AppColors.secondary, letterSpacing: 1)),
-                            ],
-                          )
-                        : Text(avatarEmoji ?? u.firstName[0].toUpperCase() + u.lastName[0].toUpperCase(),
-                            style: TextStyle(fontSize: avatarEmoji != null ? 42 : 38, fontWeight: FontWeight.w900, color: AppColors.primary)),
-                  ),
-                ),
-              ),
+        GestureDetector(
+          onTap: state.editing ? () => _showAvatarPicker(context) : null,
+          child: Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: DeckColors.paperDark,
+              shape: BoxShape.circle,
+              border: Border.all(color: DeckColors.rule, width: 2),
             ),
-          ],
+            child: Center(
+              child: Text(avatarEmoji, style: const TextStyle(fontSize: 22)),
+            ),
+          ),
         ),
-        const SizedBox(height: 16),
-        Text(u.displayName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: 2)),
-        const SizedBox(height: 4),
-        Text(u.email, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+        const SizedBox(height: 8),
+        Text(u.displayName,
+            style: DeckTheme.spaceGrotesk(fontSize: 15)),
+        const SizedBox(height: 2),
+        Text(
+          '${u.tier == 2 ? 'ALL ACCESS' : u.tier == 1 ? 'PREMIUM' : 'FREE'} TIER \u00B7 MEMBER SINCE ${_formatYear(u.createdAt)}',
+          style: DeckTheme.ibmPlexMono(fontSize: 9),
+        ),
       ],
     );
   }
 
   void _showAvatarPicker(BuildContext context) {
-    final pending = ValueNotifier<String?>(null);
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ValueListenableBuilder<String?>(
-        valueListenable: pending,
-        builder: (_, val, _) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              border: Border(top: BorderSide(color: AppColors.outline, width: 3)),
+      backgroundColor: DeckColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: DeckColors.graphiteFaint,
+                  borderRadius: BorderRadius.circular(4)),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(width: 40, height: 5, decoration: BoxDecoration(color: AppColors.outline, borderRadius: BorderRadius.circular(10))),
-                const SizedBox(height: 16),
-                const Text('PICK AN AVATAR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: 2)),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _avatarEmojis.map((emoji) {
-                    final isSelected = val == emoji;
-                    return GestureDetector(
-                      onTap: () async {
-                        await context.read<ProfileCubit>().saveProfile(
+            const SizedBox(height: 16),
+            Text('PICK AN AVATAR',
+                style: DeckTheme.spaceGrotesk(fontSize: 14)),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _avatarEmojis.map((emoji) {
+                return GestureDetector(
+                  onTap: () async {
+                    await context.read<ProfileCubit>().saveProfile(
                           context.read<ProfileCubit>().state.user?.firstName ?? '',
                           context.read<ProfileCubit>().state.user?.lastName ?? '',
                           'icon',
                           emoji,
                         );
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 56, height: 56,
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.secondary.withValues(alpha: 0.2) : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: isSelected ? AppColors.secondary : AppColors.outline, width: isSelected ? 3 : 2),
-                        ),
-                        child: Center(child: Text(emoji, style: const TextStyle(fontSize: 28))),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildEditForm(BuildContext context, ProfileState state, User u) {
-    final fnCtrl = TextEditingController(text: u.firstName);
-    final lnCtrl = TextEditingController(text: u.lastName);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Container(
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: AppColors.secondary,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.outline, width: 3),
-          boxShadow: [BoxShadow(color: AppColors.secondary.withValues(alpha: 0.4), blurRadius: 0, offset: const Offset(4, 4))],
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Row(children: [
-                Text('✏️', style: TextStyle(fontSize: 18)),
-                SizedBox(width: 8),
-                Text('EDIT PROFILE', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: 1.5)),
-              ]),
-              const SizedBox(height: 14),
-              TextField(
-                controller: fnCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'First Name',
-                  labelStyle: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.outline, width: 2.5)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.secondary, width: 3)),
-                  filled: true,
-                  fillColor: Color(0x08FF6D00),
-                ),
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: lnCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Last Name',
-                  labelStyle: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.outline, width: 2.5)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.secondary, width: 3)),
-                  filled: true,
-                  fillColor: Color(0x08FF6D00),
-                ),
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: state.saving
-                          ? null
-                          : () async {
-                              try {
-                                await context.read<ProfileCubit>().saveProfile(
-                                  fnCtrl.text.trim(),
-                                  lnCtrl.text.trim(),
-                                  null, null,
-                                );
-                                if (context.mounted) {
-                                  context.read<ProfileCubit>().cancelEdit();
-                                }
-                                fnCtrl.dispose();
-                                lnCtrl.dispose();
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-                                  );
-                                }
-                              }
-                            },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.secondary,
-                        shadowColor: AppColors.secondary.withValues(alpha: 0.5),
-                        minimumSize: const Size(0, 48),
-                      ),
-                      child: state.saving
-                          ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
-                          : const Text('💾 SAVE', style: TextStyle(letterSpacing: 1.5)),
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: DeckColors.paperDark,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: DeckColors.rule),
+                    ),
+                    child: Center(
+                      child: Text(emoji,
+                          style: const TextStyle(fontSize: 24)),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: state.saving ? null : () => context.read<ProfileCubit>().cancelEdit(),
-                      child: const Text('CANCEL'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(User u) {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.outline, width: 3),
-        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.15), blurRadius: 0, offset: const Offset(4, 4))],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _infoRow('🔑', 'Role', u.role == 'admin' ? 'ADMIN' : 'USER', u.role == 'admin' ? AppColors.secondary : AppColors.primary),
-            const Divider(height: 24, color: AppColors.outline),
-            _infoRow(u.emailVerified ? '✅' : '⏳', 'Email', u.emailVerified ? 'Verified' : 'Not verified', u.emailVerified ? AppColors.success : AppColors.secondary),
-            const Divider(height: 24, color: AppColors.outline),
-            _infoRow('📅', 'Joined', _formatDate(u.createdAt), AppColors.textSecondary),
-            const Divider(height: 24, color: AppColors.outline),
-            _infoRow(
-              u.tier == 2 ? '👑' : u.tier == 1 ? '⭐' : '🎓',
-              'Plan',
-              u.tier == 2 ? 'All Access' : u.tier == 1 ? 'Premium' : 'Free',
-              u.tier == 2 ? AppColors.gold : u.tier == 1 ? AppColors.secondary : AppColors.primary,
+                );
+              }).toList(),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _infoRow(String emoji, String label, String value, Color valueColor) {
-    return Row(
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 20)),
-        const SizedBox(width: 12),
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
-        const Spacer(),
-        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: valueColor)),
-      ],
+  Widget _buildEditForm(
+      BuildContext context, ProfileState state, User u) {
+    final fnCtrl = TextEditingController(text: u.firstName);
+    final lnCtrl = TextEditingController(text: u.lastName);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: DeckColors.blueFaint,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: DeckColors.blue),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('EDIT PROFILE',
+              style: DeckTheme.spaceGrotesk(
+                  fontSize: 12, color: DeckColors.blue)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: fnCtrl,
+            decoration: const InputDecoration(
+              labelText: 'First Name',
+            ),
+            style: DeckTheme.literata(fontSize: 14),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: lnCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Last Name',
+            ),
+            style: DeckTheme.literata(fontSize: 14),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _btnPrimary('SAVE', state.saving
+                    ? null
+                    : () async {
+                        try {
+                          await context.read<ProfileCubit>().saveProfile(
+                                fnCtrl.text.trim(),
+                                lnCtrl.text.trim(),
+                                null,
+                                null,
+                              );
+                          if (context.mounted) {
+                            context.read<ProfileCubit>().cancelEdit();
+                          }
+                          fnCtrl.dispose();
+                          lnCtrl.dispose();
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text(e.toString().replaceFirst('Exception: ', ''),
+                                      style: DeckTheme.ibmPlexMono(
+                                          color: DeckColors.paper, fontSize: 10))),
+                            );
+                          }
+                        }
+                      },
+                    loading: state.saving),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _btnOutline('CANCEL',
+                    () => context.read<ProfileCubit>().cancelEdit()),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  String _formatDate(String dateStr) {
-    try {
-      final dt = DateTime.parse(dateStr);
-      const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return '${m[dt.month - 1]} ${dt.year}';
-    } catch (_) {
-      return dateStr;
-    }
-  }
-
   Widget _buildTierCard(BuildContext context, User u) {
-    final tierName = u.tier == 2 ? 'All Access' : u.tier == 1 ? 'Premium' : 'Free';
-    final tierEmoji = u.tier == 2 ? '👑' : u.tier == 1 ? '⭐' : '🎓';
-    final tierColor = u.tier == 2 ? AppColors.gold : u.tier == 1 ? AppColors.secondary : AppColors.primary;
-    const tierPrices = {
-      1: {'myr': 49.90, 'usd': 10.99},
-      2: {'myr': 229.90, 'usd': 50.99},
-    };
-    final priceText = u.tier > 0
-        ? _currency == 'usd'
-            ? '\$${tierPrices[u.tier]!['usd']!.toStringAsFixed(2)}'
-            : 'RM${tierPrices[u.tier]!['myr']!.toStringAsFixed(2)}'
-        : '';
+    final tierName =
+        u.tier == 2 ? 'All Access' : u.tier == 1 ? 'Premium' : 'Free';
+    final tierEmoji = u.tier == 2
+        ? '\u{1F451}'
+        : u.tier == 1
+            ? '\u2B50'
+            : '\u{1F393}';
 
     return GestureDetector(
       onTap: () async {
@@ -456,120 +357,73 @@ class _ProfileTabState extends State<ProfileTab> {
           if (paid == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Plan upgraded!'),
-                backgroundColor: AppColors.success,
-              ),
+                  content: Text('Plan upgraded!',
+                      style: DeckTheme.ibmPlexMono(
+                          color: DeckColors.paper, fontSize: 10))),
             );
           }
         }
       },
       child: Container(
-        padding: const EdgeInsets.all(3),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: tierColor,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.outline, width: 3),
-          boxShadow: [
-            BoxShadow(color: tierColor.withValues(alpha: 0.4), blurRadius: 0, offset: const Offset(4, 4)),
+          color: DeckColors.ink,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Row(
+          children: [
+            Text(tierEmoji, style: const TextStyle(fontSize: 28)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(tierName,
+                      style: DeckTheme.spaceGrotesk(
+                          fontSize: 15, color: DeckColors.paper)),
+                  const SizedBox(height: 2),
+                  Text(
+                    u.tier == 2
+                        ? 'Unlimited categories'
+                        : u.tier == 1
+                            ? '10 categories'
+                            : '3 categories',
+                    style: DeckTheme.ibmPlexMono(
+                        fontSize: 9, color: DeckColors.graphiteFaint),
+                  ),
+                ],
+              ),
+            ),
+            if (u.tier < 2)
+              Text('UPGRADE \u279C',
+                  style: DeckTheme.spaceGrotesk(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: DeckColors.paper)),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Text(tierEmoji, style: const TextStyle(fontSize: 28)),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          tierName,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          priceText.isNotEmpty ? priceText : _tierDesc(u.tier),
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.8)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (u.tier < 2)
-                    const Text('UPGRADE  ➜',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _currencyOption('MYR', 'myr'),
-                  const SizedBox(width: 4),
-                  _currencyOption('USD', 'usd'),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
-  }
-
-  Widget _currencyOption(String label, String value) {
-    final selected = _currency == value;
-    return GestureDetector(
-      onTap: () => setState(() => _currency = value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? Colors.white.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: selected ? Colors.white : Colors.white70,
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _tierDesc(int tier) {
-    switch (tier) {
-      case 2: return 'Unlimited categories';
-      case 1: return '10 categories';
-      default: return '3 categories';
-    }
   }
 
   Widget _buildBadgesSection(BuildContext context, User u) {
     if (u.badges.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(3),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.outline, width: 3),
-          boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.2), blurRadius: 0, offset: const Offset(4, 4))],
+          color: DeckColors.paperDark,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: DeckColors.rule),
         ),
-        child: const Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Text('🏅', style: TextStyle(fontSize: 40)),
-              SizedBox(height: 8),
-              Text('NO BADGES YET', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: 1.5)),
-              SizedBox(height: 4),
-              Text('Answer questions to earn badges!', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
-            ],
-          ),
+        child: Column(
+          children: [
+            const Text('\u{1F3C5}', style: TextStyle(fontSize: 32)),
+            const SizedBox(height: 8),
+            Text('NO BADGES YET',
+                style: DeckTheme.spaceGrotesk(fontSize: 14)),
+            Text('Answer questions to earn badges!',
+                style: DeckTheme.ibmPlexMono(fontSize: 9)),
+          ],
         ),
       );
     }
@@ -577,24 +431,7 @@ class _ProfileTabState extends State<ProfileTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.outline, width: 2.5),
-            boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.3), blurRadius: 0, offset: const Offset(3, 3))],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🏅', style: TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
-              Text('EARNED BADGES (${u.badges.length})', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: 1.5)),
-            ],
-          ),
-        ),
+        _sectionLabel('Badges earned'),
         Wrap(
           spacing: 10,
           runSpacing: 10,
@@ -603,43 +440,59 @@ class _ProfileTabState extends State<ProfileTab> {
             final slug = b['slug'] as String? ?? '';
             final colorHex = b['color'] as String?;
             final isSelected = u.selectedBadgeSlug == slug;
-            final color = _parseColor(colorHex) ?? AppColors.secondary;
+            final color = _parseColor(colorHex) ?? DeckColors.blue;
+
             return GestureDetector(
               onTap: () async {
                 try {
                   await context.read<ProfileCubit>().selectBadge(slug);
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text(e.toString().replaceFirst('Exception: ', ''),
+                              style: DeckTheme.ibmPlexMono(
+                                  color: DeckColors.paper, fontSize: 10))),
+                    );
                   }
                 }
               },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                padding: EdgeInsets.all(isSelected ? 3 : 2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.gold : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: isSelected ? AppColors.gold : AppColors.outline, width: isSelected ? 3 : 2.5),
-                  boxShadow: isSelected
-                      ? [BoxShadow(color: AppColors.gold.withValues(alpha: 0.5), blurRadius: 0, offset: const Offset(3, 3))]
-                      : [BoxShadow(color: color.withValues(alpha: 0.15), blurRadius: 0, offset: const Offset(2, 2))],
+                  color: isSelected
+                      ? DeckColors.yellowBg
+                      : DeckColors.paperDark,
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                      color: isSelected
+                          ? DeckColors.yellow
+                          : DeckColors.rule,
+                      width: isSelected ? 2 : 1),
                 ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(color: isSelected ? Colors.white : color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                      const SizedBox(width: 8),
-                      Text(name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isSelected ? AppColors.textPrimary : color)),
-                      if (isSelected) ...[
-                        const SizedBox(width: 6),
-                        const Text('✓', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.gold)),
-                      ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                          color: color, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(name,
+                        style: DeckTheme.spaceGrotesk(
+                            fontSize: 11, color: color)),
+                    if (isSelected) ...[
+                      const SizedBox(width: 4),
+                      Text('\u2713',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: DeckColors.yellow,
+                              fontWeight: FontWeight.w700)),
                     ],
-                  ),
+                  ],
                 ),
               ),
             );
@@ -658,103 +511,104 @@ class _ProfileTabState extends State<ProfileTab> {
     return null;
   }
 
-  Widget _buildChangePasswordSection(BuildContext context, ProfileState state) {
+  Widget _buildChangePasswordSection(
+      BuildContext context, ProfileState state) {
     final cpCtrl = TextEditingController();
     final npCtrl = TextEditingController();
     return Column(
       children: [
         GestureDetector(
-          onTap: () => context.read<ProfileCubit>().togglePasswordSection(),
+          onTap: () =>
+              context.read<ProfileCubit>().togglePasswordSection(),
           child: Container(
-            padding: const EdgeInsets.all(3),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
-              color: state.showPasswordSection ? AppColors.primary : Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppColors.outline, width: 3),
-              boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.15), blurRadius: 0, offset: const Offset(4, 4))],
+              color: DeckColors.paperDark,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: DeckColors.rule),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  const Text('🔒', style: TextStyle(fontSize: 18)),
-                  const SizedBox(width: 10),
-                  const Expanded(child: Text('CHANGE PASSWORD', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: 1.5))),
-                  Icon(state.showPasswordSection ? Icons.expand_less : Icons.expand_more, color: AppColors.textSecondary),
-                ],
-              ),
+            child: Row(
+              children: [
+                Text('CHANGE PASSWORD',
+                    style: DeckTheme.spaceGrotesk(fontSize: 12)),
+                const Spacer(),
+                Icon(
+                  state.showPasswordSection
+                      ? Icons.expand_less
+                      : Icons.expand_more,
+                  color: DeckColors.graphite,
+                  size: 20,
+                ),
+              ],
             ),
           ),
         ),
         if (state.showPasswordSection) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.all(3),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppColors.outline, width: 3),
-              boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.15), blurRadius: 0, offset: const Offset(4, 4))],
+              color: DeckColors.paper,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: DeckColors.rule),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: cpCtrl,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Current Password',
-                      labelStyle: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.outline, width: 2.5)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.primary, width: 3)),
-                      filled: true,
-                      fillColor: Color(0x089C27B0),
-                    ),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: cpCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Current Password',
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: npCtrl,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'New Password (min 8 chars)',
-                      labelStyle: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.outline, width: 2.5)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.primary, width: 3)),
-                      filled: true,
-                      fillColor: Color(0x089C27B0),
-                    ),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: DeckTheme.literata(fontSize: 14),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: npCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'New Password (min 8 chars)',
                   ),
-                  const SizedBox(height: 14),
-                  FilledButton(
-                    onPressed: state.changingPassword
+                  style: DeckTheme.literata(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                _btnPrimary('UPDATE PASSWORD',
+                    state.changingPassword
                         ? null
                         : () async {
-                            if (cpCtrl.text.isEmpty || npCtrl.text.length < 8) return;
+                            if (cpCtrl.text.isEmpty ||
+                                npCtrl.text.length < 8) return;
                             try {
-                              final msg = await context.read<ProfileCubit>().changePassword(cpCtrl.text, npCtrl.text);
+                              final msg = await context
+                                  .read<ProfileCubit>()
+                                  .changePassword(
+                                      cpCtrl.text, npCtrl.text);
                               cpCtrl.clear();
                               npCtrl.clear();
                               cpCtrl.dispose();
                               npCtrl.dispose();
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg as String)));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text(msg as String,
+                                          style: DeckTheme.ibmPlexMono(
+                                              color: DeckColors.paper, fontSize: 10))),
+                                );
                               }
                             } catch (e) {
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text(e.toString().replaceFirst('Exception: ', ''),
+                                          style: DeckTheme.ibmPlexMono(
+                                              color: DeckColors.paper, fontSize: 10))),
+                                );
                               }
                             }
                           },
-                    child: state.changingPassword
-                        ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
-                        : const Text('UPDATE PASSWORD', style: TextStyle(letterSpacing: 1.5)),
-                  ),
-                ],
-              ),
+                    loading: state.changingPassword),
+              ],
             ),
           ),
         ],
@@ -762,108 +616,109 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  Widget _buildChangeEmailSection(BuildContext context, ProfileState state) {
+  Widget _buildChangeEmailSection(
+      BuildContext context, ProfileState state) {
     final cpCtrl = TextEditingController();
     final neCtrl = TextEditingController();
     return Column(
       children: [
         GestureDetector(
-          onTap: () => context.read<ProfileCubit>().toggleEmailSection(),
+          onTap: () =>
+              context.read<ProfileCubit>().toggleEmailSection(),
           child: Container(
-            padding: const EdgeInsets.all(3),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
-              color: state.showEmailSection ? AppColors.secondary : Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppColors.outline, width: 3),
-              boxShadow: [BoxShadow(color: AppColors.secondary.withValues(alpha: 0.15), blurRadius: 0, offset: const Offset(4, 4))],
+              color: DeckColors.paperDark,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: DeckColors.rule),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  const Text('📧', style: TextStyle(fontSize: 18)),
-                  const SizedBox(width: 10),
-                  const Expanded(child: Text('CHANGE EMAIL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: 1.5))),
-                  Icon(state.showEmailSection ? Icons.expand_less : Icons.expand_more, color: AppColors.textSecondary),
-                ],
-              ),
+            child: Row(
+              children: [
+                Text('CHANGE EMAIL',
+                    style: DeckTheme.spaceGrotesk(fontSize: 12)),
+                const Spacer(),
+                Icon(
+                  state.showEmailSection
+                      ? Icons.expand_less
+                      : Icons.expand_more,
+                  color: DeckColors.graphite,
+                  size: 20,
+                ),
+              ],
             ),
           ),
         ),
         if (state.showEmailSection) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.all(3),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppColors.outline, width: 3),
-              boxShadow: [BoxShadow(color: AppColors.secondary.withValues(alpha: 0.15), blurRadius: 0, offset: const Offset(4, 4))],
+              color: DeckColors.paper,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: DeckColors.rule),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: cpCtrl,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Current Password',
-                      labelStyle: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.outline, width: 2.5)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.secondary, width: 3)),
-                      filled: true,
-                      fillColor: Color(0x08FF6D00),
-                    ),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: cpCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Current Password',
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: neCtrl,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'New Email',
-                      labelStyle: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.outline, width: 2.5)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: AppColors.secondary, width: 3)),
-                      filled: true,
-                      fillColor: Color(0x08FF6D00),
-                    ),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: DeckTheme.literata(fontSize: 14),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: neCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'New Email',
                   ),
-                  const SizedBox(height: 14),
-                  FilledButton(
-                    onPressed: state.changingEmail
+                  style: DeckTheme.literata(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                _btnPrimary('SEND VERIFICATION',
+                    state.changingEmail
                         ? null
                         : () async {
-                            if (cpCtrl.text.isEmpty || neCtrl.text.trim().isEmpty) return;
+                            if (cpCtrl.text.isEmpty ||
+                                neCtrl.text.trim().isEmpty) return;
                             try {
-                              final data = await context.read<ProfileCubit>().requestEmailChange(cpCtrl.text, neCtrl.text.trim());
+                              final data = await context
+                                  .read<ProfileCubit>()
+                                  .requestEmailChange(
+                                      cpCtrl.text, neCtrl.text.trim());
                               cpCtrl.clear();
                               neCtrl.clear();
                               cpCtrl.dispose();
                               neCtrl.dispose();
                               if (context.mounted) {
-                                final token = (data as Map<String, dynamic>)['debugToken'] as String?;
+                                final token = (data as Map<String, dynamic>)[
+                                        'debugToken'] as String?;
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(data['message'] ?? 'Verification sent')),
+                                  SnackBar(
+                                      content: Text(data['message'] ?? 'Verification sent',
+                                          style: DeckTheme.ibmPlexMono(
+                                              color: DeckColors.paper, fontSize: 10))),
                                 );
-                                if (token != null) _showVerifyDialog(context, token);
+                                if (token != null) {
+                                  _showVerifyDialog(context, token);
+                                }
                               }
                             } catch (e) {
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text(e.toString().replaceFirst('Exception: ', ''),
+                                          style: DeckTheme.ibmPlexMono(
+                                              color: DeckColors.paper, fontSize: 10))),
+                                );
                               }
                             }
                           },
-                    style: FilledButton.styleFrom(backgroundColor: AppColors.secondary, shadowColor: AppColors.secondary.withValues(alpha: 0.5)),
-                    child: state.changingEmail
-                        ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
-                        : const Text('SEND VERIFICATION', style: TextStyle(letterSpacing: 1.5)),
-                  ),
-                ],
-              ),
+                    loading: state.changingEmail),
+              ],
             ),
           ),
         ],
@@ -874,47 +729,79 @@ class _ProfileTabState extends State<ProfileTab> {
   void _showVerifyDialog(BuildContext context, String token) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Verify New Email', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('A verification token was generated. Paste it below to confirm your new email.',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: TextEditingController(text: token),
-              readOnly: true,
-              maxLines: 2,
-              style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
-              decoration: const InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))), contentPadding: EdgeInsets.all(10)),
-            ),
-          ],
+      builder: (ctx) => Dialog(
+        backgroundColor: DeckColors.paper,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Verify New Email',
+                  style: DeckTheme.spaceGrotesk(fontSize: 15)),
+              const SizedBox(height: 8),
+              Text(
+                  'A verification token was generated. Paste it below to confirm.',
+                  style: DeckTheme.literata(
+                      fontSize: 13, color: DeckColors.graphite)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: TextEditingController(text: token),
+                readOnly: true,
+                maxLines: 2,
+                style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(9)),
+                  contentPadding: const EdgeInsets.all(10),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _btnPrimary('VERIFY', () async {
+                      Navigator.pop(ctx);
+                      try {
+                        final msg = await context
+                            .read<ProfileCubit>()
+                            .verifyNewEmail(token);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text(msg as String,
+                                    style: DeckTheme.ibmPlexMono(
+                                        color: DeckColors.paper, fontSize: 10))),
+                          );
+                          await widget.authService.logout();
+                          if (context.mounted) {
+                            Navigator.pushReplacementNamed(
+                                context, '/login');
+                          }
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text(e.toString().replaceFirst('Exception: ', ''),
+                                    style: DeckTheme.ibmPlexMono(
+                                        color: DeckColors.paper, fontSize: 10))),
+                          );
+                        }
+                      }
+                    }),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _btnOutline('CLOSE',
+                        () => Navigator.pop(ctx)),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                final msg = await context.read<ProfileCubit>().verifyNewEmail(token);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg as String)));
-                  await widget.authService.logout();
-                  if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
-                }
-              }
-            },
-            child: const Text('CONFIRM & VERIFY', style: TextStyle(fontWeight: FontWeight.w900)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('CLOSE', style: TextStyle(color: AppColors.textSecondary)),
-          ),
-        ],
       ),
     );
   }
@@ -923,25 +810,97 @@ class _ProfileTabState extends State<ProfileTab> {
     return GestureDetector(
       onTap: () async {
         await widget.authService.logout();
-        if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
+        if (context.mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
       },
       child: Container(
-        padding: const EdgeInsets.all(3),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.outline, width: 3),
-          boxShadow: [BoxShadow(color: AppColors.error.withValues(alpha: 0.4), blurRadius: 0, offset: const Offset(4, 4))],
+          color: DeckColors.red,
+          borderRadius: BorderRadius.circular(9),
         ),
+        child: Center(
+          child: Text('LOG OUT',
+              style: DeckTheme.spaceGrotesk(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: DeckColors.paper)),
+        ),
+      ),
+    );
+  }
+
+  String _formatYear(String dateStr) {
+    try {
+      final dt = DateTime.parse(dateStr);
+      const m = [
+        'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+        'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+      ];
+      return '${m[dt.month - 1]} ${dt.year}';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  Widget _sectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(label,
+          style: DeckTheme.ibmPlexMono(
+              fontSize: 9,
+              color: DeckColors.graphite,
+              letterSpacing: 0.1)),
+    );
+  }
+
+  Widget _btnPrimary(String label, VoidCallback? onTap,
+      {bool loading = false}) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: (loading) ? null : onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('🚪', style: TextStyle(fontSize: 18)),
-              SizedBox(width: 8),
-              Text('LOG OUT', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 2)),
-            ],
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: DeckColors.ink,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Center(
+            child: loading
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: DeckColors.paper),
+                  )
+                : Text(label,
+                    style: DeckTheme.spaceGrotesk(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: DeckColors.paper)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _btnOutline(String label, VoidCallback onTap) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: DeckColors.ink, width: 1.5),
+          ),
+          child: Center(
+            child: Text(label,
+                style: DeckTheme.spaceGrotesk(
+                    fontSize: 13.5, color: DeckColors.ink)),
           ),
         ),
       ),

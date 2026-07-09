@@ -7,7 +7,6 @@ import '../../services/api_service.dart';
 import '../../services/quiz_service.dart';
 import '../../services/subscription_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/category_bubble.dart';
 import '../quiz/question_screen.dart';
 import '../subscription_screen.dart';
 
@@ -38,161 +37,180 @@ class _QuizTabState extends State<QuizTab> {
   Widget build(BuildContext context) {
     return BlocBuilder<CategoriesCubit, CategoriesState>(
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: AppColors.surface,
-          appBar: AppBar(
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🧠', style: TextStyle(fontSize: 24)),
-                const SizedBox(width: 8),
-                const Text('QUIZZTOPIA',
-                    style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
-              ],
+        if (state.loading) return _loadingBody();
+        if (state.error != null) return _errorBody(context, state.error!);
+        if (state.categories == null || state.categories!.isEmpty) {
+          return _emptyBody();
+        }
+        final cats = state.categories!;
+        return RefreshIndicator(
+          onRefresh: () async {
+            final cc = context.read<CategoriesCubit>();
+            final co = context.read<CategoryCompletionCubit>();
+            await cc.load();
+            co.load();
+          },
+          color: DeckColors.blue,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: BlocBuilder<CategoryCompletionCubit,
+                Map<String, Map<String, int>>>(
+              builder: (context, completion) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 14),
+                    _sectionLabel('Categories'),
+                    ...cats.map((cat) {
+                      final locked =
+                          cat.children.isEmpty && cat.tier > currentTier;
+                      return _buildCatCard(context, completion, cat, locked);
+                    }),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              },
             ),
           ),
-          body: _buildBody(context, state),
         );
       },
     );
   }
 
-  Widget _buildBody(BuildContext context, CategoriesState state) {
-    if (state.loading) {
-      return const Center(child: _LoadingIndicator('🧠', 'Loading topics...'));
-    }
+  Widget _loadingBody() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('\u{1F9E0}', style: TextStyle(fontSize: 48)),
+          SizedBox(height: 12),
+          Text('Loading topics...',
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: DeckColors.graphite)),
+        ],
+      ),
+    );
+  }
 
-    if (state.error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('😵', style: TextStyle(fontSize: 56)),
-              const SizedBox(height: 12),
-              Text(state.error!, textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => context.read<CategoriesCubit>().load(),
-                child: const Text('TRY AGAIN'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (state.categories == null || state.categories!.isEmpty) {
-      return const Center(
-        child: Text('😴 No topics yet!',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textSecondary)),
-      );
-    }
-
-    final cats = state.categories!;
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        final categoriesCubit = context.read<CategoriesCubit>();
-        final completionCubit = context.read<CategoryCompletionCubit>();
-        await categoriesCubit.load();
-        completionCubit.load();
-      },
-      color: AppColors.primary,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(14),
-        child: BlocBuilder<CategoryCompletionCubit, Map<String, Map<String, int>>>(
-          builder: (context, completion) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _buildHeader(),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: [
-                    for (int i = 0; i < cats.length; i++)
-                      CategoryBubble(
-                        category: cats[i],
-                        colorIndex: i,
-                        totalQuestions: completion[cats[i].id]?['total'] ?? 0,
-                        answeredQuestions: completion[cats[i].id]?['answered'] ?? 0,
-                        completed: completion[cats[i].id]?['completed'] == 1,
-                        locked: cats[i].children.isEmpty && cats[i].tier > currentTier,
-                        onTap: () => _onCategoryTap(context, cats[i]),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 40),
-              ],
-            );
-          },
+  Widget _errorBody(BuildContext context, String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(error,
+                textAlign: TextAlign.center,
+                style: DeckTheme.ibmPlexMono(color: DeckColors.graphite)),
+            const SizedBox(height: 16),
+            _btnPrimary('TRY AGAIN', () => context.read<CategoriesCubit>().load()),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _emptyBody() {
+    return Center(
+      child: Text('No topics yet!',
+          style: DeckTheme.spaceGrotesk(
+              fontSize: 15, color: DeckColors.graphite)),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.outline, width: 2.5),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.2),
-            blurRadius: 0,
-            offset: const Offset(4, 4),
-          ),
-        ],
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('👇', style: TextStyle(fontSize: 16)),
-          SizedBox(width: 8),
-          Text('PICK A TOPIC TO START!',
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1.5)),
-          SizedBox(width: 8),
-          Text('👇', style: TextStyle(fontSize: 16)),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 14),
+        Text('Good day, quizzer',
+            style: DeckTheme.spaceGrotesk(fontSize: 19)),
+        const SizedBox(height: 2),
+        Text('Pick a category to begin',
+            style: DeckTheme.ibmPlexMono(
+                fontSize: 10, color: DeckColors.graphite)),
+      ],
     );
   }
 
-  Widget _buildDialogStat(String emoji, String value, String label) {
-    return Column(
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textSecondary,
-                letterSpacing: 1)),
-        const SizedBox(height: 4),
-        Text(emoji, style: const TextStyle(fontSize: 24)),
-        const SizedBox(height: 2),
-        Text(value,
-            style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: AppColors.textPrimary)),
-      ],
+  Widget _sectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(label,
+          style: DeckTheme.ibmPlexMono(
+              fontSize: 9,
+              color: DeckColors.graphite,
+              letterSpacing: 0.1)),
+    );
+  }
+
+  Widget _buildCatCard(BuildContext context,
+      Map<String, Map<String, int>> completion, Category cat, bool locked) {
+    final emoji = iconToEmoji(cat.icon);
+    final completed = completion[cat.id]?['completed'] == 1;
+    final total = completion[cat.id]?['total'] ?? 0;
+    final answered = completion[cat.id]?['answered'] ?? 0;
+
+    return GestureDetector(
+      onTap: () => _onCategoryTap(context, cat),
+      child: Opacity(
+        opacity: locked ? 0.55 : 1.0,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            color: DeckColors.paperDark,
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: DeckColors.rule),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                  width: 26,
+                  child: Text(emoji, style: const TextStyle(fontSize: 19), textAlign: TextAlign.center)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(cat.name,
+                        style: DeckTheme.spaceGrotesk(fontSize: 13)),
+                    Text(
+                      completed
+                          ? 'Completed'
+                          : locked
+                              ? '${total} questions'
+                              : '$answered/$total questions \u00B7 Free',
+                      style: DeckTheme.ibmPlexMono(fontSize: 9),
+                    ),
+                  ],
+                ),
+              ),
+              if (locked)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: DeckColors.yellow,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    cat.tier == 2 ? 'RM50' : 'RM14.99',
+                    style: DeckTheme.ibmPlexMono(
+                        fontSize: 8, fontWeight: FontWeight.w600, color: DeckColors.ink),
+                  ),
+                )
+              else
+                Text('\u203A',
+                    style: TextStyle(fontSize: 14, color: DeckColors.graphiteFaint)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -210,7 +228,6 @@ class _QuizTabState extends State<QuizTab> {
     try {
       final sessions = await quizService.getActiveSessions();
       final active = sessions.where((s) => s.categoryId == cat.id).toList();
-
       if (!context.mounted) return;
 
       if (active.isNotEmpty) {
@@ -222,109 +239,45 @@ class _QuizTabState extends State<QuizTab> {
             backgroundColor: Colors.transparent,
             insetPadding: const EdgeInsets.all(20),
             child: Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: AppColors.outline, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.4),
-                    blurRadius: 0,
-                    offset: const Offset(6, 6),
-                  ),
-                ],
+                color: DeckColors.paper,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: DeckColors.ink, width: 2),
               ),
-              child: Stack(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('⏳', style: TextStyle(fontSize: 44)),
-                        const SizedBox(height: 8),
-                        const Text('ACTIVE QUIZ',
-                            style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.textPrimary,
-                                letterSpacing: 2)),
-                        const SizedBox(height: 6),
-                        Text(cat.name,
-                            style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.primary)),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildDialogStat('📝', '${session.answeredCount}/${session.totalQuestions}', 'ANSWERED'),
-                            const SizedBox(width: 20),
-                            _buildDialogStat('⏰', '$remaining', 'REMAINING'),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            child: Text('Pick up where you left off or start fresh!',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textSecondary)),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(ctx, 'resume'),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 50),
-                            shadowColor: AppColors.primary.withValues(alpha: 0.4),
-                          ),
-                          child: const Text('▶️  RESUME',
-                              style: TextStyle(fontSize: 15, letterSpacing: 2)),
-                        ),
-                        const SizedBox(height: 10),
-                        OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx, 'new'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 46),
-                          ),
-                          child: const Text('🔄  START FRESH',
-                              style: TextStyle(fontSize: 13, letterSpacing: 1.5)),
-                        ),
-                      ],
-                    ),
+                  const Text('\u23F3', style: TextStyle(fontSize: 36)),
+                  const SizedBox(height: 8),
+                  Text('ACTIVE QUIZ',
+                      style: DeckTheme.spaceGrotesk(fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text(cat.name,
+                      style: DeckTheme.spaceGrotesk(
+                          fontSize: 14, color: DeckColors.blue)),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _dialogStat('\u{1F4DD}',
+                          '${session.answeredCount}/${session.totalQuestions}',
+                          'ANSWERED'),
+                      const SizedBox(width: 20),
+                      _dialogStat('\u23F0', '$remaining', 'REMAINING'),
+                    ],
                   ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(ctx, 'cancel'),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Center(
-                          child: Text('✕',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.error)),
-                        ),
-                      ),
-                    ),
+                  const SizedBox(height: 20),
+                  _btnPrimary('RESUME', () => Navigator.pop(ctx, 'resume')),
+                  const SizedBox(height: 8),
+                  _btnOutline('START FRESH',
+                      () => Navigator.pop(ctx, 'new')),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(ctx, 'cancel'),
+                    child: Text('Cancel',
+                        style: DeckTheme.ibmPlexMono(
+                            fontSize: 9, color: DeckColors.graphiteFaint)),
                   ),
                 ],
               ),
@@ -333,7 +286,6 @@ class _QuizTabState extends State<QuizTab> {
         );
 
         if (!context.mounted) return;
-
         if (result == 'resume') {
           await _pushQuestionScreen(context, session.sessionId, cat.name);
           return;
@@ -344,7 +296,6 @@ class _QuizTabState extends State<QuizTab> {
           await _pushQuestionScreen(context, session.sessionId, cat.name);
           return;
         }
-        // 'cancel' or null = do nothing, stay on categories
         return;
       }
 
@@ -354,18 +305,38 @@ class _QuizTabState extends State<QuizTab> {
     } catch (e) {
       if (context.mounted) {
         final msg = e.toString();
-        if (msg.contains('tier') || msg.contains('Upgrade') || msg.contains('subscription')) {
+        if (msg.contains('tier') ||
+            msg.contains('Upgrade') ||
+            msg.contains('subscription')) {
           _showUpgradeDialog(context, cat);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg.replaceFirst('Exception: ', ''))),
+            SnackBar(
+                content: Text(msg.replaceFirst('Exception: ', ''),
+                    style: DeckTheme.ibmPlexMono(
+                        color: DeckColors.paper, fontSize: 10))),
           );
         }
       }
     }
   }
 
-  Future<void> _pushQuestionScreen(BuildContext context, String sessionId, String categoryName) async {
+  Widget _dialogStat(String emoji, String value, String label) {
+    return Column(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 18)),
+        const SizedBox(height: 2),
+        Text(value,
+            style:
+                DeckTheme.spaceGrotesk(fontSize: 18, color: DeckColors.ink)),
+        Text(label,
+            style: DeckTheme.ibmPlexMono(fontSize: 8)),
+      ],
+    );
+  }
+
+  Future<void> _pushQuestionScreen(
+      BuildContext context, String sessionId, String categoryName) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => QuestionScreen(
@@ -390,6 +361,7 @@ class _QuizTabState extends State<QuizTab> {
             parent: parent,
             currentTier: currentTier,
             onTap: (child) => _onCategoryTap(context, child),
+            quizService: quizService,
           ),
         ),
       ),
@@ -397,228 +369,53 @@ class _QuizTabState extends State<QuizTab> {
   }
 
   void _showUpgradeDialog(BuildContext context, Category cat) {
-    final nextTier = currentTier < cat.tier ? cat.tier : currentTier + 1;
-    if (nextTier > 2) return;
-    const tierPrices = {
-      1: {'myr': 49.90, 'usd': 10.99},
-      2: {'myr': 229.90, 'usd': 50.99},
-    };
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          final tierName = nextTier == 2 ? 'All Access' : 'Premium';
-          final tierEmoji = nextTier == 2 ? '👑' : '⭐';
-          final priceText = _currency == 'usd'
-              ? '\$${tierPrices[nextTier]!['usd']!.toStringAsFixed(2)}'
-              : 'RM${tierPrices[nextTier]!['myr']!.toStringAsFixed(2)}';
-
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.all(20),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: AppColors.outline, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.4),
-                    blurRadius: 0,
-                    offset: const Offset(6, 6),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('🔒', style: TextStyle(fontSize: 44)),
-                        const SizedBox(height: 8),
-                        const Text('LOCKED CATEGORY',
-                            style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.textPrimary,
-                                letterSpacing: 2)),
-                        const SizedBox(height: 6),
-                        Text(cat.name,
-                            style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.primary)),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text('Upgrade your plan to unlock this category and many more!',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textSecondary)),
-                        ),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            Navigator.of(context).push<bool>(
-                              MaterialPageRoute(
-                                builder: (_) => SubscriptionScreen(
-                                  subscriptionService: subscriptionService,
-                                  currentTier: currentTier,
-                                  currency: _currency,
-                                ),
-                              ),
-                            ).then((paid) {
-                              if (context.mounted && paid == true) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text('Plan upgraded! Refresh to see changes.'),
-                                    backgroundColor: AppColors.success,
-                                  ),
-                                );
-                              }
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(color: AppColors.outline, width: 3),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.4),
-                                  blurRadius: 0,
-                                  offset: const Offset(4, 4),
-                                ),
-                              ],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(tierEmoji, style: const TextStyle(fontSize: 28)),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              tierName,
-                                              style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w900,
-                                                  color: Colors.white,
-                                                  letterSpacing: 1.5),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              priceText,
-                                              style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.white.withValues(alpha: 0.8)),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const Text('UPGRADE  ➜',
-                                          style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w900,
-                                              color: Colors.white,
-                                              letterSpacing: 1)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _currencyOptionDialog('MYR', 'myr', setDialogState),
-                                      const SizedBox(width: 4),
-                                      _currencyOptionDialog('USD', 'usd', setDialogState),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 46)),
-                          child: const Text('CANCEL',
-                              style: TextStyle(fontSize: 13, letterSpacing: 1.5)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(ctx),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Center(
-                          child: Text('✕',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.error)),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SubscriptionScreen(
+          subscriptionService: subscriptionService,
+          currentTier: currentTier,
+          currency: _currency,
+        ),
       ),
     );
   }
 
-  Widget _currencyOptionDialog(String label, String value, void Function(void Function()) setDialogState) {
-    final selected = _currency == value;
-    return GestureDetector(
-      onTap: () {
-        setDialogState(() {
-          setState(() => _currency = value);
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? Colors.white.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(14),
+  Widget _btnPrimary(String label, VoidCallback onTap) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: DeckColors.ink,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Center(
+            child: Text(label,
+                style: DeckTheme.spaceGrotesk(
+                    fontSize: 13.5, color: DeckColors.paper)),
+          ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: selected ? Colors.white : Colors.white70,
+      ),
+    );
+  }
+
+  Widget _btnOutline(String label, VoidCallback onTap) {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: DeckColors.ink, width: 1.5),
+          ),
+          child: Center(
+            child: Text(label,
+                style: DeckTheme.spaceGrotesk(
+                    fontSize: 13.5, color: DeckColors.ink)),
           ),
         ),
       ),
@@ -630,41 +427,116 @@ class _SubcategoryPage extends StatelessWidget {
   final Category parent;
   final int currentTier;
   final void Function(Category) onTap;
+  final QuizService quizService;
 
-  const _SubcategoryPage({required this.parent, required this.currentTier, required this.onTap});
+  const _SubcategoryPage({
+    required this.parent,
+    required this.currentTier,
+    required this.onTap,
+    required this.quizService,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: DeckColors.paper,
       appBar: AppBar(
-        title: Text(parent.name,
-            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        title: Text(parent.name),
+        leading: _backButton(context),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(14),
-          child: BlocBuilder<CategoryCompletionCubit, Map<String, Map<String, int>>>(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: BlocBuilder<CategoryCompletionCubit,
+              Map<String, Map<String, int>>>(
             builder: (context, completion) {
-              return Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 4,
-                runSpacing: 4,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (int i = 0; i < parent.children.length; i++)
-                    CategoryBubble(
-                      category: parent.children[i],
-                      colorIndex: parent.depth + i + 1,
-                      totalQuestions: completion[parent.children[i].id]?['total'] ?? 0,
-                      answeredQuestions: completion[parent.children[i].id]?['answered'] ?? 0,
-                      completed: completion[parent.children[i].id]?['completed'] == 1,
-                      locked: parent.children[i].children.isEmpty && parent.children[i].tier > currentTier,
-                      onTap: () => onTap(parent.children[i]),
-                    ),
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text('Sub-categories',
+                        style: DeckTheme.ibmPlexMono(
+                            fontSize: 9,
+                            color: DeckColors.graphite,
+                            letterSpacing: 0.1)),
+                  ),
+                  ...parent.children.map((child) {
+                    final locked =
+                        child.children.isEmpty && child.tier > currentTier;
+                    final emoji = iconToEmoji(child.icon);
+                    final completed =
+                        completion[child.id]?['completed'] == 1;
+                    final total =
+                        completion[child.id]?['total'] ?? 0;
+                    return GestureDetector(
+                      onTap: () => onTap(child),
+                      child: Opacity(
+                        opacity: locked ? 0.55 : 1.0,
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 11),
+                          decoration: BoxDecoration(
+                            color: DeckColors.paperDark,
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(color: DeckColors.rule),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                  width: 26,
+                                  child: Text(emoji,
+                                      style: const TextStyle(fontSize: 19),
+                                      textAlign: TextAlign.center)),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(child.name,
+                                        style: DeckTheme.spaceGrotesk(
+                                            fontSize: 13)),
+                                    Text(
+                                      completed
+                                          ? 'Completed'
+                                          : '$total questions',
+                                      style: DeckTheme.ibmPlexMono(
+                                          fontSize: 9),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (locked)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: DeckColors.yellow,
+                                    borderRadius:
+                                        BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    child.tier == 2 ? 'RM50' : 'RM14.99',
+                                    style: DeckTheme.ibmPlexMono(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w600,
+                                        color: DeckColors.ink),
+                                  ),
+                                )
+                              else
+                                Text('\u203A',
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color: DeckColors.graphiteFaint)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                 ],
               );
             },
@@ -675,26 +547,59 @@ class _SubcategoryPage extends StatelessWidget {
   }
 }
 
-class _LoadingIndicator extends StatelessWidget {
-  final String emoji;
-  final String text;
-  const _LoadingIndicator(this.emoji, this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 56)),
-          const SizedBox(height: 12),
-          Text(text,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textSecondary)),
-        ],
+Widget _backButton(BuildContext context) {
+  return GestureDetector(
+    onTap: () => Navigator.of(context).pop(),
+    child: Container(
+      width: 28,
+      height: 28,
+      margin: const EdgeInsets.only(left: 16),
+      decoration: BoxDecoration(
+        color: DeckColors.paperDark,
+        shape: BoxShape.circle,
+        border: Border.all(color: DeckColors.rule),
       ),
-    );
+      child: const Center(
+        child: Text('\u2190', style: TextStyle(fontSize: 13, color: DeckColors.ink)),
+      ),
+    ),
+  );
+}
+
+String iconToEmoji(String? icon) {
+  switch (icon) {
+    case 'microscope': case 'dna': case 'flask': case 'atom': case 'rocket':
+    case 'calculator': case 'brain': case 'bolt': case 'beaker':
+      return '\u{1F52C}';
+    case 'scroll': case 'landmark': case 'swords': case 'building':
+    case 'helmet': case 'bomb':
+      return '\u{1F3DB}\uFE0F';
+    case 'globe': case 'map': case 'city': case 'waves':
+    case 'monument': case 'compass':
+      return '\u{1F30D}';
+    case 'film': case 'clapperboard': case 'music': case 'tv':
+    case 'gamepad': case 'award':
+      return '\u{1F3AC}';
+    case 'laptop': case 'smartphone': case 'shield':
+      return '\u{1F4BB}';
+    case 'trophy': case 'football': case 'basketball': case 'medal':
+      return '\u26BD';
+    case 'utensils': case 'bowl': case 'cake': case 'coffee':
+      return '\u{1F354}';
+    default:
+      return '\u2B50';
   }
+}
+
+String catEmoji(String name) {
+  final n = name.toLowerCase();
+  if (n.contains('geo')) return '\u{1F30D}';
+  if (n.contains('sci')) return '\u{1F9EA}';
+  if (n.contains('film') || n.contains('tv')) return '\u{1F3AC}';
+  if (n.contains('hist')) return '\u{1F3DB}\uFE0F';
+  if (n.contains('cap')) return '\u{1F3D9}';
+  if (n.contains('river') || n.contains('mount')) return '\u26F0\uFE0F';
+  if (n.contains('chem')) return '\u2697\uFE0F';
+  if (n.contains('phys')) return '\u269B\uFE0F';
+  return '\u2B50';
 }
