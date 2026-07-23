@@ -11,21 +11,28 @@ class StatsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<StatsCubit, StatsState>(
       builder: (context, state) {
-        final body = _buildBody(context, state);
         return Column(
           children: [
             Container(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
               decoration: const BoxDecoration(
                 border: Border(
                     bottom: BorderSide(color: DeckColors.ink, width: 2)),
                 color: DeckColors.paper,
               ),
-              child: Text('Stats',
-                  style: DeckTheme.spaceGrotesk(fontSize: 17)),
+              child: Row(
+                children: [
+                  Text('Stats',
+                      style: DeckTheme.spaceGrotesk(fontSize: 17)),
+                  const Spacer(),
+                  if (state.stats != null)
+                    Text('${state.stats!.totalQuestionsAnswered} answers',
+                        style: DeckTheme.ibmPlexMono(
+                            fontSize: 9, color: DeckColors.graphite)),
+                ],
+              ),
             ),
-            Expanded(child: body),
+            Expanded(child: _buildBody(context, state)),
           ],
         );
       },
@@ -59,15 +66,47 @@ class StatsTab extends StatelessWidget {
       );
     }
 
-    if (state.stats == null) {
+    final s = state.stats;
+    final cats = state.categoryStats;
+
+    final hasData = s != null && s.totalQuestionsAnswered > 0;
+
+    if (!hasData) {
       return Center(
-        child: Text('No stats yet!',
-            style: DeckTheme.spaceGrotesk(
-                fontSize: 14, color: DeckColors.graphite)),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: DeckColors.paperDark,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: DeckColors.rule, width: 2),
+                ),
+                child: const Center(
+                  child: Text('\u{1F4CA}', style: TextStyle(fontSize: 28)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('No stats yet',
+                  style: DeckTheme.spaceGrotesk(fontSize: 16)),
+              const SizedBox(height: 6),
+              Text(
+                'Answer some questions and your\nstats will appear here.',
+                textAlign: TextAlign.center,
+                style: DeckTheme.literata(
+                    fontSize: 13,
+                    color: DeckColors.graphite,
+                    height: 1.4),
+              ),
+            ],
+          ),
+        ),
       );
     }
-
-    final s = state.stats!;
 
     return RefreshIndicator(
       onRefresh: () => context.read<StatsCubit>().load(),
@@ -78,29 +117,30 @@ class StatsTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('Overview'),
-            GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+            Text('OVERVIEW',
+                style: DeckTheme.ibmPlexMono(
+                    fontSize: 9,
+                    color: DeckColors.graphite,
+                    letterSpacing: 0.1)),
+            const SizedBox(height: 8),
+            Row(
               children: [
-                _statCell(
-                    '${s.totalQuestionsAnswered}', 'Answered'),
-                _statCell(
-                    '${s.totalCorrectStreak}',
-                    'Correct streak'),
-                _statCell('${s.currentLoginStreak}', 'Login streak'),
-                _statCell('${s.longestLoginStreak}',
-                    'Longest streak'),
+                _statChip('${s.totalQuestionsAnswered}', 'Answered'),
+                const SizedBox(width: 8),
+                _statChip('${s.totalCorrectStreak}', 'Streak'),
+                const SizedBox(width: 8),
+                _statChip('${s.currentLoginStreak}', 'Login'),
               ],
             ),
-            if (state.categoryStats != null &&
-                state.categoryStats!.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              _sectionLabel('By Category'),
-              ...state.categoryStats!.map(_buildCategoryStat),
+            if (cats != null && cats.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text('BY CATEGORY',
+                  style: DeckTheme.ibmPlexMono(
+                      fontSize: 9,
+                      color: DeckColors.graphite,
+                      letterSpacing: 0.1)),
+              const SizedBox(height: 8),
+              ...cats.map((cat) => _buildCategoryRow(cat)),
             ],
             const SizedBox(height: 24),
           ],
@@ -109,42 +149,34 @@ class StatsTab extends StatelessWidget {
     );
   }
 
-  Widget _sectionLabel(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(label,
-          style: DeckTheme.ibmPlexMono(
-              fontSize: 9,
-              color: DeckColors.graphite,
-              letterSpacing: 0.1)),
-    );
-  }
-
-  Widget _statCell(String value, String label) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: DeckColors.paperDark,
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: DeckColors.rule),
-      ),
-      child: Column(
-        children: [
-          Text(value,
-              style: DeckTheme.spaceGrotesk(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: DeckColors.ink)),
-          const SizedBox(height: 2),
-          Text(label,
-              style: DeckTheme.ibmPlexMono(
-                  fontSize: 8, color: DeckColors.graphite)),
-        ],
+  Widget _statChip(String value, String label) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          color: DeckColors.paperDark,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: DeckColors.rule),
+        ),
+        child: Column(
+          children: [
+            Text(value,
+                textAlign: TextAlign.center,
+                style: DeckTheme.spaceGrotesk(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: DeckColors.ink)),
+            const SizedBox(height: 2),
+            Text(label,
+                style: DeckTheme.ibmPlexMono(
+                    fontSize: 8, color: DeckColors.graphite)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCategoryStat(CategoryStat cat) {
+  Widget _buildCategoryRow(CategoryStat cat) {
     final accuracyColor = cat.accuracy >= 75
         ? DeckColors.green
         : cat.accuracy >= 50
@@ -194,7 +226,7 @@ class StatsTab extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-              '${cat.correctAnswers}/${cat.questionsAnswered} correct',
+              '${cat.correctAnswers}/${cat.questionsAnswered} correct \u00B7 Finished ${cat.completedSessions}\u00D7',
               style: DeckTheme.ibmPlexMono(
                   fontSize: 9, color: DeckColors.graphite)),
         ],

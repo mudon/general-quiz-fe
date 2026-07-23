@@ -31,6 +31,7 @@ class CategoryStat {
   final int questionsAnswered;
   final int correctAnswers;
   final double accuracy;
+  final int completedSessions;
   final String? lastAnsweredAt;
 
   CategoryStat({
@@ -40,6 +41,7 @@ class CategoryStat {
     required this.questionsAnswered,
     required this.correctAnswers,
     required this.accuracy,
+    this.completedSessions = 0,
     this.lastAnsweredAt,
   });
 
@@ -51,6 +53,7 @@ class CategoryStat {
       questionsAnswered: json['questionsAnswered'] ?? 0,
       correctAnswers: json['correctAnswers'] ?? 0,
       accuracy: (json['accuracy'] ?? 0).toDouble(),
+      completedSessions: json['completedSessions'] ?? 0,
       lastAnsweredAt: json['lastAnsweredAt']?.toString(),
     );
   }

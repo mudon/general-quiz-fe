@@ -16,6 +16,7 @@ import '../services/subscription_service.dart';
 import '../theme/app_theme.dart';
 import 'tabs/quiz_tab.dart';
 import 'tabs/review_tab.dart';
+import 'tabs/stats_tab.dart';
 import 'tabs/profile_tab.dart';
 
 class MainScreen extends StatefulWidget {
@@ -63,6 +64,10 @@ class _MainScreenState extends State<MainScreen> {
         child: ReviewTab(quizService: quizService),
       ),
       BlocProvider(
+        create: (_) => StatsCubit(statsService)..load(),
+        child: const StatsTab(),
+      ),
+      BlocProvider(
         create: (_) => ProfileCubit(profileService)..load(),
         child: ProfileTab(
             authService: widget.authService,
@@ -90,7 +95,8 @@ class _MainScreenState extends State<MainScreen> {
           children: [
           _buildTab(0, '\u{1F9E0}', 'Quiz'),
           _buildTab(1, '\u{1F4DA}', 'Review'),
-          _buildTab(2, '\u{1F464}', 'Profile'),
+          _buildTab(2, '\u{1F4CA}', 'Stats'),
+          _buildTab(3, '\u{1F464}', 'Profile'),
           ],
         ),
       ),

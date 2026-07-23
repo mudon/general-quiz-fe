@@ -309,7 +309,7 @@ class _QuizTabState extends State<QuizTab> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    cat.tier == 2 ? 'RM50' : 'RM14.99',
+                    cat.tier == 3 ? 'RM99.99' : cat.tier == 2 ? 'RM54.99' : 'RM16.99',
                     style: DeckTheme.ibmPlexMono(
                         fontSize: 8, fontWeight: FontWeight.w600, color: DeckColors.ink),
                   ),
@@ -629,7 +629,7 @@ class _SubcategoryPage extends StatelessWidget {
                                         BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    child.tier == 2 ? 'RM50' : 'RM14.99',
+                                    child.tier == 3 ? 'RM99.99' : child.tier == 2 ? 'RM54.99' : 'RM16.99',
                                     style: DeckTheme.ibmPlexMono(
                                         fontSize: 8,
                                         fontWeight: FontWeight.w600,

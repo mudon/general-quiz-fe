@@ -708,18 +708,7 @@ class _QuestionScreenState extends State<QuestionScreen>
           ),
           child: Column(
             children: [
-              _btn('Play again', () => _loadQuestion()),
-              const SizedBox(height: 7),
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Text('Back to categories',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontFamily: 'IBM Plex Mono',
-                      color: DeckColors.graphiteFaint,
-                      decoration: TextDecoration.underline,
-                    )),
-              ),
+              _btn('Finished', () => Navigator.of(context).pop()),
             ],
           ),
         ),

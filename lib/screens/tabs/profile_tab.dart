@@ -186,7 +186,7 @@ class _ProfileTabState extends State<ProfileTab> {
             style: DeckTheme.spaceGrotesk(fontSize: 15)),
         const SizedBox(height: 2),
         Text(
-          '${u.tier == 2 ? 'ALL ACCESS' : u.tier == 1 ? 'PREMIUM' : 'FREE'} TIER \u00B7 MEMBER SINCE ${_formatYear(u.createdAt)}',
+          '${u.tier == 3 ? 'ULTIMATE' : u.tier == 2 ? 'ALL ACCESS' : u.tier == 1 ? 'PREMIUM' : 'FREE'} TIER \u00B7 MEMBER SINCE ${_formatYear(u.createdAt)}',
           style: DeckTheme.ibmPlexMono(fontSize: 9),
         ),
       ],
@@ -333,13 +333,20 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   Widget _buildTierCard(BuildContext context, User u) {
-    final tierName =
-        u.tier == 2 ? 'All Access' : u.tier == 1 ? 'Premium' : 'Free';
-    final tierEmoji = u.tier == 2
-        ? '\u{1F451}'
-        : u.tier == 1
-            ? '\u2B50'
-            : '\u{1F393}';
+    final tierName = u.tier == 3
+        ? 'Ultimate'
+        : u.tier == 2
+            ? 'All Access'
+            : u.tier == 1
+                ? 'Premium'
+                : 'Free';
+    final tierEmoji = u.tier == 3
+        ? '\u{1F3C6}'
+        : u.tier == 2
+            ? '\u{1F451}'
+            : u.tier == 1
+                ? '\u2B50'
+                : '\u{1F393}';
 
     return GestureDetector(
       onTap: () async {
@@ -367,8 +374,9 @@ class _ProfileTabState extends State<ProfileTab> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: DeckColors.ink,
+          color: DeckColors.paper,
           borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: DeckColors.blue),
         ),
         child: Row(
           children: [
@@ -380,26 +388,28 @@ class _ProfileTabState extends State<ProfileTab> {
                 children: [
                   Text(tierName,
                       style: DeckTheme.spaceGrotesk(
-                          fontSize: 15, color: DeckColors.paper)),
+                          fontSize: 15, color: DeckColors.ink)),
                   const SizedBox(height: 2),
                   Text(
-                    u.tier == 2
-                        ? 'Unlimited categories'
-                        : u.tier == 1
-                            ? '10 categories'
-                            : '3 categories',
+                    u.tier == 3
+                        ? 'All categories + priority'
+                        : u.tier == 2
+                            ? 'Unlimited categories'
+                            : u.tier == 1
+                                ? '10 categories'
+                                : '3 categories',
                     style: DeckTheme.ibmPlexMono(
-                        fontSize: 9, color: DeckColors.graphiteFaint),
+                        fontSize: 9, color: DeckColors.graphite),
                   ),
                 ],
               ),
             ),
-            if (u.tier < 2)
+            if (u.tier < 3)
               Text('UPGRADE \u279C',
                   style: DeckTheme.spaceGrotesk(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: DeckColors.paper)),
+                      color: DeckColors.blue)),
           ],
         ),
       ),

@@ -44,12 +44,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _paymentPending && mounted) {
       _paymentPending = false;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Payment successful! Pull down to refresh.',
-                  style: DeckTheme.ibmPlexMono(
-                      color: DeckColors.paper, fontSize: 10))),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Payment successful!',
+                style: DeckTheme.ibmPlexMono(
+                    color: DeckColors.paper, fontSize: 10))),
+      );
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) Navigator.of(context).pop(true);
       });
@@ -137,7 +137,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                   textAlign: TextAlign.center,
                   style: DeckTheme.ibmPlexMono(color: DeckColors.graphite)),
               const SizedBox(height: 16),
-              _btnPrimary('TRY AGAIN', () => _load()),
+              _btnFilled('Try again', () => _load()),
             ],
           ),
         ),
@@ -159,18 +159,32 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: DeckColors.ink,
+              color: DeckColors.paperDark,
               borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: DeckColors.rule),
             ),
-            child: Column(
+            child: Row(
               children: [
-                Text('Current: ${_tierName(widget.currentTier)}',
-                    style: DeckTheme.spaceGrotesk(
-                        fontSize: 14, color: DeckColors.paper)),
-                const SizedBox(height: 4),
+                Text(_planIcon(widget.currentTier),
+                    style: const TextStyle(fontSize: 28)),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Current plan',
+                          style: DeckTheme.ibmPlexMono(
+                              fontSize: 9,
+                              color: DeckColors.graphite,
+                              letterSpacing: 0.1)),
+                      const SizedBox(height: 2),
+                      Text(_tierName(widget.currentTier),
+                          style: DeckTheme.spaceGrotesk(fontSize: 15)),
+                    ],
+                  ),
+                ),
                 Text(_tierDesc(widget.currentTier),
-                    style: DeckTheme.ibmPlexMono(
-                        fontSize: 9, color: DeckColors.graphiteFaint)),
+                    style: DeckTheme.ibmPlexMono(fontSize: 9)),
               ],
             ),
           ),
@@ -186,125 +200,248 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
     final isCurrent = plan.tier == widget.currentTier;
     final isLower = plan.tier < widget.currentTier;
     final isFree = plan.tier == 0;
+    final isBest = plan.tier == 3;
+
+    final borderColor = isCurrent
+        ? DeckColors.blue
+        : isBest
+            ? DeckColors.yellow
+            : DeckColors.rule;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isCurrent ? DeckColors.ink : DeckColors.paperDark,
+        color: DeckColors.paper,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: DeckColors.rule),
+        border: Border.all(
+            color: borderColor,
+            width: isCurrent || isBest ? 2 : 1),
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: isCurrent
-                      ? DeckColors.paper.withAlpha(30)
-                      : DeckColors.paper,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Center(
-                  child: Text(
-                    plan.tier == 2
-                        ? '\u{1F451}'
-                        : plan.tier == 1
-                            ? '\u2B50'
-                            : '\u{1F393}',
-                    style: const TextStyle(fontSize: 22),
-                  ),
-                ),
+          if (isBest)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: DeckColors.yellow,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(7)),
               ),
-              const Spacer(),
-              if (isCurrent)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: DeckColors.paper.withAlpha(30),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text('CURRENT',
-                      style: DeckTheme.ibmPlexMono(
-                          fontSize: 8,
-                          fontWeight: FontWeight.w600,
-                          color: DeckColors.paper)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: Center(
+                child: Text('BEST VALUE',
+                    style: DeckTheme.ibmPlexMono(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w600,
+                        color: DeckColors.ink,
+                        letterSpacing: 0.1)),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    Text(plan.name,
-                        style: DeckTheme.spaceGrotesk(
-                            fontSize: 16,
-                            color: isCurrent
-                                ? DeckColors.paper
-                                : DeckColors.ink)),
-                    if (!isFree) ...[
-                      const SizedBox(height: 2),
-                      Text(_formatPrice(plan),
-                          style: DeckTheme.spaceGrotesk(
-                              fontSize: 13,
-                              color: isCurrent
-                                  ? DeckColors.graphiteFaint
-                                  : DeckColors.blue)),
-                    ],
-                    const SizedBox(height: 2),
-                    Text(_tierDesc(plan.tier),
-                        style: DeckTheme.ibmPlexMono(
-                            fontSize: 9,
-                            color: isCurrent
-                                ? DeckColors.graphiteFaint
-                                : DeckColors.graphite)),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: DeckColors.paperDark,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Center(
+                        child: Text(_planIcon(plan.tier),
+                            style: const TextStyle(fontSize: 22)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(plan.name,
+                                  style: DeckTheme.spaceGrotesk(
+                                      fontSize: 16)),
+                              if (isCurrent) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: DeckColors.blueFaint,
+                                    borderRadius:
+                                        BorderRadius.circular(8),
+                                  ),
+                                  child: Text('CURRENT',
+                                      style: DeckTheme.ibmPlexMono(
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.w600,
+                                          color: DeckColors.blue)),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          if (!isFree)
+                            Text(_formatPrice(plan),
+                                style: DeckTheme.spaceGrotesk(
+                                    fontSize: 13,
+                                    color: DeckColors.blue)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (isCurrent)
-            _disabledBtn('YOU ARE HERE')
-          else if (isLower)
-            _disabledBtn('OWNED')
-          else
-            _btnPrimary(
-              _checkingOut == plan.plan
-                  ? 'OPENING STRIPE...'
-                  : 'UPGRADE',
-              _checkingOut == plan.plan
-                  ? null
-                  : () => _checkout(plan.plan),
+                const SizedBox(height: 14),
+                Text(_tierDesc(plan.tier),
+                    style: DeckTheme.ibmPlexMono(fontSize: 9)),
+                const SizedBox(height: 12),
+                _buildFeatures(plan.tier),
+                const SizedBox(height: 14),
+                if (isCurrent)
+                  _btnDisabled('Current plan')
+                else if (isLower)
+                  _btnDisabled('Already owned')
+                else
+                  _btnFilled(
+                    _checkingOut == plan.plan
+                        ? 'Opening Stripe...'
+                        : 'Upgrade',
+                    _checkingOut == plan.plan
+                        ? null
+                        : () => _checkout(plan.plan),
+                  ),
+              ],
             ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _disabledBtn(String label) {
+  Widget _buildFeatures(int tier) {
+    final features = <_Feature>[];
+    switch (tier) {
+      case 3:
+        features.addAll([
+          _Feature(true, 'All categories unlocked'),
+          _Feature(true, 'Unlimited quiz sessions'),
+          _Feature(true, 'Priority support'),
+          _Feature(true, 'All badges & achievements'),
+          _Feature(true, 'Early access to new content'),
+        ]);
+        break;
+      case 2:
+        features.addAll([
+          _Feature(true, 'All categories unlocked'),
+          _Feature(true, 'Unlimited quiz sessions'),
+          _Feature(true, 'All badges & achievements'),
+          _Feature(false, 'Priority support'),
+        ]);
+        break;
+      case 1:
+        features.addAll([
+          _Feature(true, 'Up to 10 categories'),
+          _Feature(true, 'Unlimited quiz sessions'),
+          _Feature(true, 'All badges & achievements'),
+          _Feature(false, 'All categories unlocked'),
+        ]);
+        break;
+      default:
+        features.addAll([
+          _Feature(true, 'Up to 3 categories'),
+          _Feature(true, 'Basic quiz sessions'),
+          _Feature(false, 'All badges & achievements'),
+          _Feature(false, 'All categories unlocked'),
+        ]);
+    }
+
+    return Column(
+      children: features
+          .map((f) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Icon(
+                      f.included ? Icons.check : Icons.close,
+                      size: 14,
+                      color: f.included
+                          ? DeckColors.green
+                          : DeckColors.graphiteFaint,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(f.label,
+                        style: DeckTheme.ibmPlexMono(
+                            fontSize: 9,
+                            color: f.included
+                                ? DeckColors.ink
+                                : DeckColors.graphiteFaint)),
+                  ],
+                ),
+              ))
+          .toList(),
+    );
+  }
+
+  Widget _btnFilled(String label, VoidCallback? onTap, {Color? accent}) {
+    final bg = onTap != null
+        ? (accent ?? DeckColors.blue)
+        : DeckColors.graphiteFaint;
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Center(
+            child: Text(label,
+                style: DeckTheme.spaceGrotesk(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: DeckColors.paper)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _btnDisabled(String label) {
     return SizedBox(
       width: double.infinity,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: DeckColors.graphiteFaint,
+          color: DeckColors.paperDark,
           borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: DeckColors.rule),
         ),
         child: Center(
           child: Text(label,
               style: DeckTheme.spaceGrotesk(
-                  fontSize: 13.5, color: DeckColors.paper)),
+                  fontSize: 13.5, color: DeckColors.graphite)),
         ),
       ),
     );
+  }
+
+  String _planIcon(int tier) {
+    switch (tier) {
+      case 3:
+        return '\u{1F3C6}';
+      case 2:
+        return '\u{1F451}';
+      case 1:
+        return '\u2B50';
+      default:
+        return '\u{1F393}';
+    }
   }
 
   String _tierName(int tier) {
@@ -318,6 +455,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
 
   String _tierDesc(int tier) {
     switch (tier) {
+      case 3:
+        return 'All categories + priority support';
       case 2:
         return 'Unlimited categories';
       case 1:
@@ -329,32 +468,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
 
   String _formatPrice(PlanInfo plan) {
     if (widget.currency == 'usd') {
-      return '\$${plan.priceUSD.toStringAsFixed(2)}';
+      return '\$${plan.priceUSD.toStringAsFixed(2)}/mo';
     }
-    return 'RM${plan.priceMYR.toStringAsFixed(2)}';
-  }
-
-  Widget _btnPrimary(String label, VoidCallback? onTap) {
-    return SizedBox(
-      width: double.infinity,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: onTap != null ? DeckColors.ink : DeckColors.graphiteFaint,
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: Center(
-            child: Text(label,
-                style: DeckTheme.spaceGrotesk(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: DeckColors.paper)),
-          ),
-        ),
-      ),
-    );
+    return 'RM${plan.priceMYR.toStringAsFixed(2)}/mo';
   }
 
   Widget _backButton(BuildContext context) {
@@ -376,4 +492,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
       ),
     );
   }
+}
+
+class _Feature {
+  final bool included;
+  final String label;
+  const _Feature(this.included, this.label);
 }
